@@ -2,19 +2,20 @@ name: Supabase Keep Alive
 
 on:
   schedule:
-    - cron: '0 9 * * 1,4'  # Lunes y jueves a las 9am UTC
-  workflow_dispatch:        # Permite ejecución manual
+    - cron: '0 9 * * 1,4'
+  workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase
+      - name: Ping Supabase PATRIMONIO
         run: |
-          curl -s -o /dev/null -w "%{http_code}" \
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
             -X PATCH \
             "https://xsjeyqnpppnuojfeeglp.supabase.co/rest/v1/patrimonio?id=eq.main" \
-            -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}" \
+            -H "apikey: sb_publishable_UzLgldTW5IMBamWuAsm7AQ_ah7h3jfa" \
+            -H "Authorization: Bearer sb_publishable_UzLgldTW5IMBamWuAsm7AQ_ah7h3jfa" \
             -H "Content-Type: application/json" \
-            -d '{"updated_at":"'$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"}'
+            -d '{"updated_at":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}')
+          echo "Supabase ping status: $STATUS"
