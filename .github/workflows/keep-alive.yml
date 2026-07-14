@@ -2,7 +2,7 @@ name: Supabase Keep Alive
 
 on:
   schedule:
-    - cron: '0 9 */2 * *'  # Cada 2 dias a las 9am UTC
+    - cron: '0 9 */2 * *'
   workflow_dispatch:
 
 jobs:
@@ -12,20 +12,9 @@ jobs:
       - name: Install PostgreSQL client
         run: sudo apt-get install -y postgresql-client
 
-      - name: Ping Supabase via REST API
+      - name: Ping Supabase via direct Postgres connection
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X PATCH \
-            "https://xsjeyqnpppnuojfeeglp.supabase.co/rest/v1/patrimonio?id=eq.main" \
-            -H "apikey: sb_publishable_UzLgldTW5IMBamWuAsm7AQ_ah7h3jfa" \
-            -H "Authorization: Bearer sb_publishable_UzLgldTW5IMBamWuAsm7AQ_ah7h3jfa" \
-            -H "Content-Type: application/json" \
-            -d '{"updated_at":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}')
-          echo "REST API ping status: $STATUS"
-
-      - name: Ping Supabase via SQL query
-        run: |
-          PGPASSWORD="MENALLED753951" psql \
-            "postgresql://postgres.xsjeyqnpppnuojfeeglp:MENALLED753951@aws-0-us-east-1.pooler.supabase.com:6543/postgres" \
-            -c "UPDATE patrimonio SET updated_at = NOW() WHERE id = 'main';" || echo "SQL ping failed (expected without DB password)"
-          echo "Done"
+          PGPASSWORD="Patrimonio753951!" psql \
+            "postgresql://postgres.xsjeyqnpppnuojfeeglp:Patrimonio753951!@aws-0-us-east-1.pooler.supabase.com:5432/postgres" \
+            -c "UPDATE patrimonio SET updated_at = NOW() WHERE id = 'main';"
+          echo "Postgres ping OK"
