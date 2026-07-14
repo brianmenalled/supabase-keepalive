@@ -15,6 +15,6 @@ jobs:
       - name: Ping Supabase via direct Postgres connection
         run: |
           PGPASSWORD="Patrimonio753951!" psql \
-            "postgresql://postgres.xsjeyqnpppnuojfeeglp:Patrimonio753951!@aws-0-us-east-1.pooler.supabase.com:5432/postgres" \
+            "postgresql://postgres:Patrimonio753951!@db.xsjeyqnpppnuojfeeglp.supabase.co:5432/postgres" \
             -c "UPDATE patrimonio SET updated_at = NOW() WHERE id = 'main';"
           echo "Postgres ping OK"
