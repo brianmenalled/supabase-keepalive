@@ -2,7 +2,7 @@ name: Supabase Keep Alive
 
 on:
   schedule:
-    - cron: '0 9 * * 1,4'
+    - cron: '0 9 */2 * *'  # Cada 2 dias a las 9am UTC
   workflow_dispatch:
 
 jobs:
@@ -19,3 +19,8 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"updated_at":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}')
           echo "Supabase ping status: $STATUS"
+          if [ "$STATUS" != "204" ] && [ "$STATUS" != "200" ]; then
+            echo "ERROR: Unexpected status $STATUS"
+            exit 1
+          fi
+          echo "OK - Supabase is alive"
