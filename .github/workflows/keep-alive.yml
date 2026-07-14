@@ -12,9 +12,13 @@ jobs:
       - name: Install PostgreSQL client
         run: sudo apt-get install -y postgresql-client
 
-      - name: Ping Supabase via direct Postgres connection
+      - name: Ping Supabase via Postgres (IPv4 forced)
         run: |
+          # Resolve IPv4 address explicitly
+          DB_HOST="db.xsjeyqnpppnuojfeeglp.supabase.co"
+          IPV4=$(getent ahostsv4 "$DB_HOST" | head -1 | awk '{print $1}')
+          echo "Connecting to $DB_HOST via IPv4: $IPV4"
           PGPASSWORD="Patrimonio753951!" psql \
-            "postgresql://postgres:Patrimonio753951!@db.xsjeyqnpppnuojfeeglp.supabase.co:5432/postgres" \
+            "postgresql://postgres:Patrimonio753951!@$IPV4:5432/postgres" \
             -c "UPDATE patrimonio SET updated_at = NOW() WHERE id = 'main';"
           echo "Postgres ping OK"
