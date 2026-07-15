@@ -9,20 +9,16 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Install tools
-        run: sudo apt-get install -y postgresql-client dnsutils
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
 
-      - name: Ping Supabase via Postgres IPv4
+      - name: Ping Supabase via Postgres (IPv4)
         run: |
           DB_HOST="db.xsjeyqnpppnuojfeeglp.supabase.co"
-          IPV4=$(dig +short A $DB_HOST | head -1)
-          echo "Resolved $DB_HOST to IPv4: $IPV4"
-          if [ -z "$IPV4" ]; then
-            echo "ERROR: Could not resolve IPv4"
-            exit 1
-          fi
+          # Force IPv4 resolution using python3
+          IPV4=$(python3 -c "import socket; print(socket.getaddrinfo('$DB_HOST', 5432, socket.AF_INET)[0][4][0])")
+          echo "Resolved IPv4: $IPV4"
           PGPASSWORD="Patrimonio753951!" psql \
-            "postgresql://postgres:Patrimonio753951!@$IPV4:5432/postgres" \
-            -c "UPDATE patrimonio SET updated_at = NOW() WHERE id = 'main';" \
-            --no-password
+            "postgresql://postgres:Patrimonio753951!@$IPV4:5432/postgres?sslmode=require" \
+            -c "UPDATE patrimonio SET updated_at = NOW() WHERE id = 'main'; SELECT updated_at FROM patrimonio WHERE id = 'main';"
           echo "Postgres ping OK"
