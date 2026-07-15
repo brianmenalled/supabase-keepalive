@@ -9,12 +9,32 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Install PostgreSQL client
-        run: sudo apt-get install -y postgresql-client
-
-      - name: Ping Supabase via connection pooler
+      - name: Ping Supabase via REST API PATCH
         run: |
-          PGPASSWORD="Patrimonio753951!" psql \
-            "postgresql://postgres.xsjeyqnpppnuojfeeglp:Patrimonio753951!@aws-0-us-east-1.pooler.supabase.com:6543/postgres" \
-            -c "UPDATE patrimonio SET updated_at = NOW() WHERE id = 'main'; SELECT updated_at FROM patrimonio WHERE id = 'main';"
-          echo "Ping OK"
+          STATUS=$(curl -s -o /tmp/resp.txt -w "%{http_code}" \
+            -X PATCH \
+            "https://xsjeyqnpppnuojfeeglp.supabase.co/rest/v1/patrimonio?id=eq.main" \
+            -H "apikey: sb_publishable_UzLgldTW5IMBamWuAsm7AQ_ah7h3jfa" \
+            -H "Authorization: Bearer sb_publishable_UzLgldTW5IMBamWuAsm7AQ_ah7h3jfa" \
+            -H "Content-Type: application/json" \
+            -d "{\"updated_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}")
+          echo "Status: $STATUS"
+          cat /tmp/resp.txt
+          if [ "$STATUS" = "204" ] || [ "$STATUS" = "200" ]; then
+            echo "OK - Supabase pinged successfully"
+          else
+            echo "ERROR: Status $STATUS"
+            exit 1
+          fi
+
+      - name: Ping Supabase via Management API SQL
+        run: |
+          STATUS=$(curl -s -o /tmp/resp2.txt -w "%{http_code}" \
+            -X POST \
+            "https://api.supabase.com/v1/projects/xsjeyqnpppnuojfeeglp/database/query" \
+            -H "Authorization: Bearer sb_publishable_UzLgldTW5IMBamWuAsm7AQ_ah7h3jfa" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": \"UPDATE patrimonio SET updated_at = NOW() WHERE id = 'main'\"}")
+          echo "Management API Status: $STATUS"
+          cat /tmp/resp2.txt || true
+
