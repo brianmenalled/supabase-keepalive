@@ -1,0 +1,49 @@
+name: Deploy STATUS COMEX
+on:
+  workflow_dispatch:
+    inputs:
+      netlify_token:
+        description: "Netlify Personal Access Token"
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Create ZIP
+        run: |
+          cp status-comex-app.html index.html
+          zip deploy.zip index.html
+          echo "ZIP size: $(wc -c < deploy.zip)"
+          
+      - name: Deploy to Netlify
+        run: |
+          TOKEN="${{ github.event.inputs.netlify_token }}"
+          
+          echo "Getting sites..."
+          SITES=$(curl -s -H "Authorization: Bearer $TOKEN" \
+            "https://api.netlify.com/api/v1/sites?filter=all&per_page=20")
+          echo "Sites response: $SITES"
+          
+          SITE_ID=$(echo "$SITES" | python3 -c "
+import sys,json
+sites = json.load(sys.stdin)
+for s in sites:
+    name = s.get(\"name\",\"\")
+    sid = s.get(\"id\",\"\")
+    print(name, \"|\", sid)
+    if \"iridescent\" in name or \"shortbread\" in name:
+        print(\"FOUND:\", sid)
+")
+          echo "Sites: $SITE_ID"
+          
+          # Try deploy with site name directly
+          RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/zip" \
+            --data-binary @deploy.zip \
+            "https://api.netlify.com/api/v1/sites/iridescent-shortbread-547661/deploys")
+          echo "Deploy response: $RESPONSE"
