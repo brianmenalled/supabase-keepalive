@@ -17,33 +17,21 @@ jobs:
         run: |
           cp status-comex-app.html index.html
           zip deploy.zip index.html
-          echo "ZIP size: $(wc -c < deploy.zip)"
+          echo "ZIP created: $(wc -c < deploy.zip) bytes"
           
       - name: Deploy to Netlify
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ github.event.inputs.netlify_token }}
+          SITE_ID: iridescent-shortbread-547661
         run: |
-          TOKEN="${{ github.event.inputs.netlify_token }}"
-          
-          echo "Getting sites..."
-          SITES=$(curl -s -H "Authorization: Bearer $TOKEN" \
-            "https://api.netlify.com/api/v1/sites?filter=all&per_page=20")
-          echo "Sites response: $SITES"
-          
-          SITE_ID=$(echo "$SITES" | python3 -c "
-import sys,json
-sites = json.load(sys.stdin)
-for s in sites:
-    name = s.get(\"name\",\"\")
-    sid = s.get(\"id\",\"\")
-    print(name, \"|\", sid)
-    if \"iridescent\" in name or \"shortbread\" in name:
-        print(\"FOUND:\", sid)
-")
-          echo "Sites: $SITE_ID"
-          
-          # Try deploy with site name directly
-          RESPONSE=$(curl -s -X POST \
-            -H "Authorization: Bearer $TOKEN" \
+          echo "Deploying to Netlify..."
+          RESP=$(curl -s -X POST \
+            -H "Authorization: Bearer ${NETLIFY_AUTH_TOKEN}" \
             -H "Content-Type: application/zip" \
             --data-binary @deploy.zip \
-            "https://api.netlify.com/api/v1/sites/iridescent-shortbread-547661/deploys")
-          echo "Deploy response: $RESPONSE"
+            "https://api.netlify.com/api/v1/sites/${SITE_ID}/deploys")
+          echo "Response: $RESP"
+          STATE=$(echo "$RESP" | grep -o '"state":"[^"]*"' | head -1)
+          ID=$(echo "$RESP" | grep -o '"id":"[^"]*"' | head -1)
+          echo "State: $STATE"
+          echo "ID: $ID"
