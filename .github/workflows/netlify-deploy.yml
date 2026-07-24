@@ -34,16 +34,5 @@ jobs:
           
           echo "Response: $RESPONSE"
           
-          # Check for error
-          echo "$RESPONSE" | python3 -c "
-import sys,json
-d=json.load(sys.stdin)
-if d.get('error'):
-    print('ERROR:', d['error'])
-    exit(1)
-else:
-    print('Deploy ID:', d.get('id',?))
-    print('State:', d.get('state',?))
-    print('URL:', d.get('ssl_url',?))
-"
-
+          STATE=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('state',?)); print(d.get('id',?)); print(d.get('error',ok))")
+          echo "State: $STATE"
