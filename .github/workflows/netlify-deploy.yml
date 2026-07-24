@@ -1,6 +1,11 @@
 name: Deploy STATUS COMEX to Netlify
 on:
   workflow_dispatch:
+    inputs:
+      netlify_token:
+        description: "Netlify Personal Access Token"
+        required: true
+        type: string
 
 jobs:
   deploy:
@@ -8,13 +13,37 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      - name: Install Netlify CLI
-        run: npm install -g netlify-cli
-        
-      - name: Deploy to Netlify
+      - name: Create ZIP
         run: |
-          # Use netlify deploy with auth token from environment
-          # First get auth token via login
-          cat status-comex-app.html | wc -c
-          netlify deploy --dir=. --site=iridescent-shortbread-547661 --auth="${{ secrets.NETLIFY_TOKEN }}" --message="STATUS COMEX app deploy" 2>&1 || echo "Deploy attempt done"
+          cp status-comex-app.html index.html
+          zip deploy.zip index.html
+          ls -la deploy.zip
+          
+      - name: Deploy to Netlify via API
+        run: |
+          SITE_ID="iridescent-shortbread-547661"
+          TOKEN="${{ github.event.inputs.netlify_token }}"
+          
+          echo "Deploying to site $SITE_ID..."
+          
+          RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/zip" \
+            --data-binary @deploy.zip \
+            "https://api.netlify.com/api/v1/sites/$SITE_ID/deploys")
+          
+          echo "Response: $RESPONSE"
+          
+          # Check for error
+          echo "$RESPONSE" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+if d.get('error'):
+    print('ERROR:', d['error'])
+    exit(1)
+else:
+    print('Deploy ID:', d.get('id',?))
+    print('State:', d.get('state',?))
+    print('URL:', d.get('ssl_url',?))
+"
 
