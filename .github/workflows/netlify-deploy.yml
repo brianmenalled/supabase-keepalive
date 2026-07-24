@@ -19,12 +19,34 @@ jobs:
           zip deploy.zip index.html
           ls -la deploy.zip
           
+      - name: Get site info
+        run: |
+          TOKEN="${{ github.event.inputs.netlify_token }}"
+          echo "Getting sites list..."
+          curl -s -H "Authorization: Bearer $TOKEN" \
+            "https://api.netlify.com/api/v1/sites?filter=all&per_page=20" | python3 -c "
+import sys,json
+sites = json.load(sys.stdin)
+for s in sites:
+    print(s.get(\"id\"), \"|\", s.get(\"name\"), \"|\", s.get(\"ssl_url\",\"\"))
+"
+          
       - name: Deploy to Netlify via API
         run: |
-          SITE_ID="iridescent-shortbread-547661"
+          SITE_SLUG="iridescent-shortbread-547661"
           TOKEN="${{ github.event.inputs.netlify_token }}"
           
-          echo "Deploying to site $SITE_ID..."
+          echo "Getting site ID for $SITE_SLUG..."
+          SITE_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
+            "https://api.netlify.com/api/v1/sites?filter=all&per_page=20" | python3 -c "
+import sys,json
+sites = json.load(sys.stdin)
+for s in sites:
+    if s.get(\"name\") == \"$SITE_SLUG\" or s.get(\"id\") == \"$SITE_SLUG\":
+        print(s.get(\"id\"))
+        break
+")
+          echo "Site ID: $SITE_ID"
           
           RESPONSE=$(curl -s -X POST \
             -H "Authorization: Bearer $TOKEN" \
@@ -33,6 +55,3 @@ jobs:
             "https://api.netlify.com/api/v1/sites/$SITE_ID/deploys")
           
           echo "Response: $RESPONSE"
-          
-          STATE=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('state',?)); print(d.get('id',?)); print(d.get('error',ok))")
-          echo "State: $STATE"
