@@ -109,6 +109,24 @@ async function sbGet(table, params='') {
   if (!r.ok) throw new Error(`sbGet ${table}: ${r.status}`);
   return r.json();
 }
+async function sbGetAll(table, params='') {
+  // Trae todos los registros paginando de a 1000
+  const pageSize = 1000;
+  let all = [];
+  let offset = 0;
+  while (true) {
+    const sep = params.includes('?') ? '&' : '?';
+    const r = await fetch(`${SB_URL}/rest/v1/${table}${params}${sep}limit=${pageSize}&offset=${offset}`, {
+      headers: { ...SB_H, 'Prefer': 'count=exact' }
+    });
+    if (!r.ok) throw new Error(`sbGetAll ${table}: ${r.status}`);
+    const data = await r.json();
+    all = all.concat(data);
+    if (data.length < pageSize) break;
+    offset += pageSize;
+  }
+  return all;
+}
 async function sbInsert(table, row) {
   const r = await fetch(`${SB_URL}/rest/v1/${table}`, { method: 'POST', headers: SB_UPS, body: JSON.stringify(row) });
   if (!r.ok) { const t = await r.text(); throw new Error(`sbInsert ${table}: ${r.status} ${t}`); }
@@ -252,11 +270,11 @@ async function loadFromSupabase() {
     const [config, temporadas, cargas, articulos, categorias, gastos, tc_bna] = await Promise.all([
       sbGet('config', '?id=eq.main'),
       sbGet('temporadas', '?order=id'),
-      sbGet('cargas', '?order=id'),
-      sbGet('articulos', '?order=id'),
+      sbGetAll('cargas', '?order=id'),
+      sbGetAll('articulos', '?order=id'),
       sbGet('categorias', '?order=id'),
-      sbGet('gastos', '?order=id'),
-      sbGet('tc_bna', '?order=fecha'),
+      sbGetAll('gastos', '?order=id'),
+      sbGetAll('tc_bna', '?order=fecha'),
     ]);
     const cfg = config[0] || {};
     DB = migrate({
