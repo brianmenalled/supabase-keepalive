@@ -13,46 +13,42 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Create deploy files
+      - name: Setup deploy directory
         run: |
           mkdir -p deploy_dir
           cp status-comex-app.html deploy_dir/index.html
           
-          # Add _headers file to force correct content-type
-          cat > deploy_dir/_headers << 'HEADERS'
-/*
-  X-Frame-Options: SAMEORIGIN
-
-/index.html
-  Content-Type: text/html; charset=utf-8
-HEADERS
-          
-          # Add netlify.toml for good measure
           cat > deploy_dir/netlify.toml << 'TOML'
 [[headers]]
   for = "/*"
   [headers.values]
     Content-Type = "text/html; charset=utf-8"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Content-Type = "text/html; charset=utf-8"
 TOML
           
-          ls -la deploy_dir/
-          cd deploy_dir && zip -r ../deploy.zip . && cd ..
-          echo "ZIP contents:"
-          unzip -l deploy.zip
+          cat > deploy_dir/_headers << 'HEADERS'
+/index.html
+  Content-Type: text/html; charset=utf-8
 
-      - name: Deploy to Netlify
+/*
+  Content-Type: text/html; charset=utf-8
+HEADERS
+          
+          echo "Deploy dir contents:"
+          ls -la deploy_dir/
+          echo "netlify.toml:"
+          cat deploy_dir/netlify.toml
+
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
+
+      - name: Deploy via Netlify CLI
         env:
           NETLIFY_AUTH_TOKEN: ${{ github.event.inputs.netlify_token }}
-          SITE_UUID: bb8cb106-d40e-4cb9-8241-b1b550c00b46
+          NETLIFY_SITE_ID: bb8cb106-d40e-4cb9-8241-b1b550c00b46
         run: |
-          echo "Deploying to Netlify UUID: ${SITE_UUID}"
-          RESP=$(curl -s -X POST \
-            -H "Authorization: Bearer ${NETLIFY_AUTH_TOKEN}" \
-            -H "Content-Type: application/zip" \
-            --data-binary @deploy.zip \
-            "https://api.netlify.com/api/v1/sites/${SITE_UUID}/deploys")
-          echo "Response: $RESP"
-          STATE=$(echo "$RESP" | grep -o '"state":"[^"]*"' | head -1)
-          echo "State: $STATE"
-          ID=$(echo "$RESP" | grep -o '"id":"[^"]*"' | head -1)
-          echo "Deploy ID: $ID"
+          netlify deploy --dir=deploy_dir --prod --message="STATUS COMEX with correct charset"
