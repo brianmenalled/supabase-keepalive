@@ -12,26 +12,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Create ZIP
         run: |
           cp status-comex-app.html index.html
           zip deploy.zip index.html
-          echo "ZIP created: $(wc -c < deploy.zip) bytes"
-          
+          echo "ZIP size: $(wc -c < deploy.zip) bytes"
+
       - name: Deploy to Netlify
         env:
           NETLIFY_AUTH_TOKEN: ${{ github.event.inputs.netlify_token }}
-          SITE_ID: iridescent-shortbread-547661
+          SITE_UUID: bb8cb106-d40e-4cb9-8241-b1b550c00b46
         run: |
-          echo "Deploying to Netlify..."
+          echo "Deploying to Netlify UUID: ${SITE_UUID}"
           RESP=$(curl -s -X POST \
             -H "Authorization: Bearer ${NETLIFY_AUTH_TOKEN}" \
             -H "Content-Type: application/zip" \
             --data-binary @deploy.zip \
-            "https://api.netlify.com/api/v1/sites/${SITE_ID}/deploys")
+            "https://api.netlify.com/api/v1/sites/${SITE_UUID}/deploys")
           echo "Response: $RESP"
           STATE=$(echo "$RESP" | grep -o '"state":"[^"]*"' | head -1)
-          ID=$(echo "$RESP" | grep -o '"id":"[^"]*"' | head -1)
           echo "State: $STATE"
-          echo "ID: $ID"
+          ID=$(echo "$RESP" | grep -o '"id":"[^"]*"' | head -1)
+          echo "Deploy ID: $ID"
