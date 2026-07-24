@@ -17,30 +17,9 @@ jobs:
         run: |
           mkdir -p deploy_dir
           cp status-comex-app.html deploy_dir/index.html
-          
-          cat > deploy_dir/netlify.toml << 'TOML'
-[[headers]]
-  for = "/*"
-  [headers.values]
-    Content-Type = "text/html; charset=utf-8"
-
-[[headers]]
-  for = "/index.html"
-  [headers.values]
-    Content-Type = "text/html; charset=utf-8"
-TOML
-          
-          cat > deploy_dir/_headers << 'HEADERS'
-/index.html
-  Content-Type: text/html; charset=utf-8
-
-/*
-  Content-Type: text/html; charset=utf-8
-HEADERS
-          
-          echo "Deploy dir contents:"
+          printf '[[headers]]\n  for = "/*"\n  [headers.values]\n    Content-Type = "text/html; charset=utf-8"\n' > deploy_dir/netlify.toml
+          printf '/index.html\n  Content-Type: text/html; charset=utf-8\n/*\n  Content-Type: text/html; charset=utf-8\n' > deploy_dir/_headers
           ls -la deploy_dir/
-          echo "netlify.toml:"
           cat deploy_dir/netlify.toml
 
       - name: Install Netlify CLI
@@ -51,4 +30,4 @@ HEADERS
           NETLIFY_AUTH_TOKEN: ${{ github.event.inputs.netlify_token }}
           NETLIFY_SITE_ID: bb8cb106-d40e-4cb9-8241-b1b550c00b46
         run: |
-          netlify deploy --dir=deploy_dir --prod --message="STATUS COMEX with correct charset"
+          netlify deploy --dir=deploy_dir --prod --message="STATUS COMEX charset fix"
