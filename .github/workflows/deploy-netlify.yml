@@ -13,11 +13,32 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Create ZIP
+      - name: Create deploy files
         run: |
-          cp status-comex-app.html index.html
-          zip deploy.zip index.html
-          echo "ZIP size: $(wc -c < deploy.zip) bytes"
+          mkdir -p deploy_dir
+          cp status-comex-app.html deploy_dir/index.html
+          
+          # Add _headers file to force correct content-type
+          cat > deploy_dir/_headers << 'HEADERS'
+/*
+  X-Frame-Options: SAMEORIGIN
+
+/index.html
+  Content-Type: text/html; charset=utf-8
+HEADERS
+          
+          # Add netlify.toml for good measure
+          cat > deploy_dir/netlify.toml << 'TOML'
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Type = "text/html; charset=utf-8"
+TOML
+          
+          ls -la deploy_dir/
+          cd deploy_dir && zip -r ../deploy.zip . && cd ..
+          echo "ZIP contents:"
+          unzip -l deploy.zip
 
       - name: Deploy to Netlify
         env:
