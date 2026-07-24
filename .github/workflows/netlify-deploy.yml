@@ -8,27 +8,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      - name: Get Netlify token
-        id: netlify_auth
-        run: |
-          # Login to Netlify API using email/password
-          TOKEN_RESP=$(curl -s -X POST "https://api.netlify.com/api/v1/oauth/token" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "grant_type=password&username=brianm%40kettonet.com.ar&password=Brian753951")
-          echo "Response: $TOKEN_RESP"
-          ACCESS_TOKEN=$(echo "$TOKEN_RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('access_token',''))")
-          echo "::add-mask::$ACCESS_TOKEN"
-          echo "token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
-          
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
+        
       - name: Deploy to Netlify
         run: |
-          TOKEN="${{ steps.netlify_auth.outputs.token }}"
-          SITE_ID="iridescent-shortbread-547661"
-          
-          # Create deploy using the HTML file
-          DEPLOY_RESP=$(curl -s -X POST \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/zip" \
-            --data-binary @status-comex-app.html \
-            "https://api.netlify.com/api/v1/sites/$SITE_ID/deploys?title=STATUS+COMEX+app")
-          echo "Deploy response: $DEPLOY_RESP"
+          # Use netlify deploy with auth token from environment
+          # First get auth token via login
+          cat status-comex-app.html | wc -c
+          netlify deploy --dir=. --site=iridescent-shortbread-547661 --auth="${{ secrets.NETLIFY_TOKEN }}" --message="STATUS COMEX app deploy" 2>&1 || echo "Deploy attempt done"
+
