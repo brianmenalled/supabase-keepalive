@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Costeo de Cargas Marítimas</title>
+<style>
+  :root {
+    --blue: #1f4e78; --blue-light: #eaf1f8; --green: #1e7d32; --orange: #b56a00;
+    --gray: #667085; --red: #b3261e; --border: #d7dce2; --bg: #f5f7fa;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; margin: 0; background: var(--bg); color: #1c1f24; }
+  header { background: var(--blue); color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  header h1 { font-size: 18px; margin: 0; }
+  header .actions button, header .actions label { font-size: 12px; }
+  nav { background: #fff; border-bottom: 1px solid var(--border); display: flex; gap: 4px; padding: 0 20px; }
+  nav button { background: none; border: none; padding: 12px 16px; font-size: 13px; cursor: pointer; color: var(--gray); border-bottom: 3px solid transparent; }
+  nav button.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: bold; }
+  main { padding: 20px; }
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 18px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; color: var(--blue); }
+  .card h3 { font-size: 13px; margin: 18px 0 8px; color: var(--blue); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 7px 9px; border-bottom: 1px solid #eef1f4; text-align: left; white-space: nowrap; }
+  table.compact th, table.compact td { padding: 5px 4px; font-size: 12px; }
+  table.fixed-cols { table-layout: fixed; width: 100%; }
+  table.fixed-cols th, table.fixed-cols td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .truncate { display: inline-block; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+  th { color: var(--gray); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+  tr:hover td { background: #fafbfc; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  button { cursor: pointer; border-radius: 6px; border: 1px solid var(--border); background: #fff; padding: 6px 12px; font-size: 12px; color: #1c1f24; }
+  button.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+  button.danger { color: var(--red); }
+  button.link { border: none; background: none; color: var(--blue); padding: 2px 4px; }
+  button:disabled { opacity: .4; cursor: default; }
+  input, select { font-family: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 5px; width: 100%; }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; align-items: end; }
+  .form-grid label { display: block; font-size: 11px; color: var(--gray); margin-bottom: 3px; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge.b1 { background: #eceff3; color: var(--gray); }
+  .badge.b2 { background: #e3ecfa; color: #1955a8; }
+  .badge.b3 { background: #fdf0e0; color: var(--orange); }
+  .badge.b4 { background: #e3f6ec; color: #0f7a4d; }
+  .badge.b5 { background: #dff5e0; color: var(--green); }
+  .badge.b6 { background: #e6e0f8; color: #5b3ea6; }
+  .badge.paid { background: #dff5e0; color: var(--green); }
+  .badge.pending { background: #fdf0e0; color: var(--orange); }
+  .muted { color: var(--gray); font-size: 12px; }
+  .empty { color: var(--gray); font-size: 13px; padding: 20px; text-align: center; }
+  .breadcrumb { font-size: 12px; color: var(--gray); margin-bottom: 10px; }
+  .breadcrumb a { color: var(--blue); cursor: pointer; text-decoration: none; }
+  .row-actions { display: flex; gap: 6px; }
+  .warn { background: #fdf0e0; border: 1px solid #f0c98a; color: var(--orange); padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-bottom: 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 800px) { .grid2 { grid-template-columns: 1fr; } }
+  .subtabs { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+  .subtabs button { border: none; border-bottom: 3px solid transparent; border-radius: 0; background: none; padding: 8px 14px; }
+  .subtabs button.active { border-bottom-color: var(--blue); color: var(--blue); font-weight: bold; }
+  .footer-note { font-size: 11px; color: var(--gray); margin-top: 6px; }
+  input[type=file] { display: none; }
+  @page { size: landscape; margin: 10mm; }
+  @media print {
+    .no-print { display: none !important; }
+    body { background: #fff; }
+    main { max-width: 100%; padding: 0; }
+    .card { border: none; box-shadow: none; padding: 4px; margin-bottom: 8px; page-break-inside: avoid; }
+    div[style*="overflow-x"] { overflow: visible !important; width: auto !important; }
+    table { table-layout: fixed !important; width: 100% !important; }
+    table th, table td { white-space: normal !important; word-break: break-word; overflow: visible !important; text-overflow: clip !important; }
+    table.compact th, table.compact td { font-size: 9px; padding: 3px 4px; }
+    .truncate { max-width: none !important; overflow: visible; white-space: normal; }
+  }
+  textarea { font-family: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 5px; width: 100%; resize: vertical; }
+  .art-detail { background: var(--blue-light); border-radius: 6px; padding: 14px; margin: 4px 0 10px; white-space: normal; }
+  .art-detail h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--blue); margin: 14px 0 6px; }
+  .art-detail h4:first-child { margin-top: 0; }
+  td.detail-cell { white-space: normal; }
+</style>
+</head>
+<body>
+
+<header class="no-print">
+  <h1>📦 Costeo de Cargas Marítimas</h1>
+  <div class="actions" style="display:flex; gap:8px; align-items:center;">
+    <span id="sharedStatus" style="font-size:12px; color:#cfe0f0;"></span>
+    <button onclick="conectarArchivoCompartido()" id="btnConectarCompartido">🔗 Conectar archivo compartido</button>
+    <button onclick="exportData()">⬇ Exportar datos</button>
+    <label class="btn-file"><button type="button" onclick="document.getElementById('importFile').click()">⬆ Importar datos</button></label>
+    <input type="file" id="importFile" accept=".json" onchange="importData(event)">
+  </div>
+</header>
+
+<nav id="mainNav" class="no-print"></nav>
+
+<main id="app"></main>
+
+<script>
+/* ============================================================
+   DATA MODEL — Supabase backend
+   ============================================================ */
+const SB_URL = 'https://vkpbyyclghbihglewipb.supabase.co';
+const SB_KEY = 'sb_publishable_QzPcc8tirq3MhR3KUrzQqg_j1ktAJEf';
+const SB_H = { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
+const SB_UPS = { ...SB_H, 'Prefer': 'resolution=merge-duplicates,return=minimal' };
+
+async function sbGet(table, params='') {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}${params}`, { headers: SB_H });
+  if (!r.ok) throw new Error(`sbGet ${table}: ${r.status}`);
+  return r.json();
+}
+async function sbInsert(table, row) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, { method: 'POST', headers: SB_UPS, body: JSON.stringify(row) });
+  if (!r.ok) { const t = await r.text(); throw new Error(`sbInsert ${table}: ${r.status} ${t}`); }
+}
+async function sbUpdate(table, id, data, idField='id') {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${idField}=eq.${id}`, { method: 'PATCH', headers: { ...SB_H, 'Prefer': 'return=minimal' }, body: JSON.stringify(data) });
+  if (!r.ok) { const t = await r.text(); throw new Error(`sbUpdate ${table}: ${r.status} ${t}`); }
+}
+async function sbDelete(table, id, idField='id') {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${idField}=eq.${id}`, { method: 'DELETE', headers: { ...SB_H, 'Prefer': 'return=minimal' } });
+  if (!r.ok) { const t = await r.text(); throw new Error(`sbDelete ${table}: ${r.status} ${t}`); }
+}
+async function sbUpsertConfig(data) {
+  const r = await fetch(`${SB_URL}/rest/v1/config?id=eq.main`, { method: 'PATCH', headers: { ...SB_H, 'Prefer': 'return=minimal' }, body: JSON.stringify(data) });
+  if (!r.ok) { const t = await r.text(); throw new Error(`sbUpsertConfig: ${r.status} ${t}`); }
+}
+
+const STORAGE_KEY = 'costeo_cargas_db_v1'; // kept for export/import compatibility
+
+function seedData() {
+  return {
+    nextId: { cargas: 3, articulos: 4, gastos: 4, categorias: 8, tc_bna: 4, temporadas: 2 },
+    gastosHundidosPct: 8.5,
+    temporadas: [
+      { id: 1, nombre: 'EJEMPLO - Temporada 2026' },
+    ],
+    cargas: [
+      { id: 1, bl: 'EJEMPLO-BL001', temporada_id: 1, fecha_embarque: '2026-01-01', eta: '2026-02-01', estado: 'Nacionalizada',
+        nro_orden_naviera: '', nro_contenedor: '', tipo_carga: '', buque: '', puerto_origen: '', terminal: '', forwarder: '',
+        etd: '', fecha_despacho: '', nro_despacho: '', valor_flete_ref: null, comentarios: '', etd_historial: [] },
+      { id: 2, bl: 'EJEMPLO-BL002', temporada_id: 1, fecha_embarque: '2026-01-10', eta: '2026-02-15', estado: 'Arribada',
+        nro_orden_naviera: '', nro_contenedor: '', tipo_carga: '', buque: '', puerto_origen: '', terminal: '', forwarder: '',
+        etd: '', fecha_despacho: '', nro_despacho: '', valor_flete_ref: null, comentarios: '', etd_historial: [] },
+    ],
+    articulos: [
+      { id: 1, carga_id: 1, nombre: 'Tela Denim Azul 14oz', cbm: 20,
+        proveedor: '', cod_proveedor: '', cod_ketto: '', marca: '', tipo_producto: '', ancho: '', gsm: '', nro_pi: '',
+        qty_compra: 5000, qty_real: 5000, qty_declarada: 5000, un_medida: 'KGS',
+        unitario_real: 3.00, unitario_aduana: null, fob_aduana: null,
+        ncm_real: '', ncm_declarar: '', desglose_ncm: [], composicion_real: '', composicion_etiqueta: '' },
+      { id: 2, carga_id: 1, nombre: 'Tela Gabardina Negra', cbm: 10,
+        proveedor: '', cod_proveedor: '', cod_ketto: '', marca: '', tipo_producto: '', ancho: '', gsm: '', nro_pi: '',
+        qty_compra: 3000, qty_real: 3000, qty_declarada: 3000, un_medida: 'KGS',
+        unitario_real: 2.6667, unitario_aduana: null, fob_aduana: null,
+        ncm_real: '', ncm_declarar: '', desglose_ncm: [], composicion_real: '', composicion_etiqueta: '' },
+      { id: 3, carga_id: 2, nombre: 'Tela Popelina Blanca', cbm: 15,
+        proveedor: '', cod_proveedor: '', cod_ketto: '', marca: '', tipo_producto: '', ancho: '', gsm: '', nro_pi: '',
+        qty_compra: 4000, qty_real: 4000, qty_declarada: 4000, un_medida: 'KGS',
+        unitario_real: 2.25, unitario_aduana: null, fob_aduana: null,
+        ncm_real: '', ncm_declarar: '', desglose_ncm: [], composicion_real: '', composicion_etiqueta: '' },
+    ],
+    categorias: [
+      { id: 1, nombre: 'Flete Maritimo', metodo: 'CBM' },
+      { id: 2, nombre: 'Gastos Portuarios', metodo: 'CBM' },
+      { id: 3, nombre: 'Handling / Almacenaje', metodo: 'CBM' },
+      { id: 4, nombre: 'Despachante de Aduana', metodo: 'CBM' },
+      { id: 5, nombre: 'Derechos de Importacion', metodo: 'FOB' },
+      { id: 6, nombre: 'Seguro', metodo: 'CBM' },
+      { id: 7, nombre: 'Honorarios / Otros', metodo: 'CBM' },
+    ],
+    gastos: [
+      { id: 1, carga_id: 1, categoria_id: 1, fecha_fc: '2026-01-03', nro_fc: 'FC-00123', monto_ars: 1500000, observacion: 'Flete BL001', estado: 'Pagado', fecha_pago: '2026-01-05' },
+      { id: 2, carga_id: 1, categoria_id: 4, fecha_fc: '2026-01-08', nro_fc: 'FC-00456', monto_ars: 800000, observacion: 'Honorarios despacho', estado: 'Pagado', fecha_pago: '2026-01-06' },
+      { id: 3, carga_id: 1, categoria_id: 5, fecha_fc: '2026-01-09', nro_fc: 'FC-00789', monto_ars: 2200000, observacion: 'Aranceles AFIP', estado: 'Pendiente', fecha_pago: null },
+    ],
+    tc_bna: [
+      { id: 1, fecha: '2026-01-05', valor: 1050.50 },
+      { id: 2, fecha: '2026-01-06', valor: 1052.00 },
+      { id: 3, fecha: '2026-02-10', valor: 1080.25 },
+    ],
+  };
+}
+
+let PERSIST_OK = true;
+
+function migrate(db) {
+  // Compatibilidad con datos guardados antes de agregar los campos nuevos.
+  (db.articulos || []).forEach(a => {
+    if (a.qty_real === undefined) a.qty_real = (a.cantidad !== undefined ? a.cantidad : 0);
+    if (a.tipo_producto === 'Tela') a.tipo_producto = 'TELA';
+    if (a.tipo_producto === 'Prenda') a.tipo_producto = 'PRENDAS';
+    const UDM_LEGACY = { 'KGS': 'KG', 'MTS': 'MT', 'PCS': 'UNI', 'UN': 'UNI' };
+    if (a.un_medida && UDM_LEGACY[a.un_medida.trim()]) a.un_medida = UDM_LEGACY[a.un_medida.trim()];
+    if (!a.desglose_ncm) {
+      a.desglose_ncm = [];
+      if (a.ncm_real || a.ncm_declarar) {
+        a.desglose_ncm.push({ categoria: '', ncm_real: a.ncm_real || '', ncm_declarar: a.ncm_declarar || '', qty_real: a.qty_real || 0, unitario_real: a.unitario_real ?? null, qty_aduana: a.qty_real || 0, unitario_aduana: a.unitario_aduana ?? null });
+      }
+    }
+    a.desglose_ncm.forEach(d => {
+      if (d.qty_aduana === undefined) d.qty_aduana = (d.qty !== undefined ? d.qty : 0);
+      if (d.qty_real === undefined) d.qty_real = 0;
+      if (d.unitario_real === undefined) d.unitario_real = null;
+      if (d.unitario_aduana === undefined) d.unitario_aduana = a.unitario_aduana ?? null;
+      delete d.qty;
+    });
+  });
+  (db.cargas || []).forEach(c => {
+    if (!c.etd_historial) c.etd_historial = [];
+    if (c.temporada_id === undefined) c.temporada_id = null;
+  });
+  (db.gastos || []).forEach(g => {
+    if (g.tc_manual === undefined) g.tc_manual = null;
+    if (g.iva_usd === undefined) g.iva_usd = null;
+    if (g.iva_adicional_usd === undefined) g.iva_adicional_usd = null;
+  });
+  if (!db.temporadas) db.temporadas = [];
+  if (!db.nextId.temporadas) db.nextId.temporadas = (db.temporadas.reduce((max,t)=>Math.max(max,t.id),0) + 1);
+  if (db.gastosHundidosPct === undefined) db.gastosHundidosPct = 8.5;
+  if (!db._temporadaAutoMigrada) {
+    const huerfanas = (db.cargas || []).filter(c => !c.temporada_id);
+    if (huerfanas.length > 0) {
+      let invierno = db.temporadas.find(t => t.nombre === 'INVIERNO 2026');
+      if (!invierno) {
+        invierno = { id: db.nextId.temporadas++, nombre: 'INVIERNO 2026' };
+        db.temporadas.push(invierno);
+      }
+      huerfanas.forEach(c => { c.temporada_id = invierno.id; });
+    }
+    db._temporadaAutoMigrada = true;
+  }
+  return db;
+}
+function load() { return seedData(); } // fallback solo para init sync
+function save() {
+  // Save nextId and gastosHundidosPct to Supabase config (fire and forget)
+  sbUpsertConfig({ next_id: DB.nextId, gastos_hundidos_pct: DB.gastosHundidosPct }).catch(e => console.warn('save config:', e));
+  if (SHARED_MODE && SHARED_HANDLE) {
+    clearTimeout(sharedSaveTimer);
+    sharedSaveTimer = setTimeout(escribirArchivoCompartido, 800);
+  }
+}
+function nextId(table) { const id = DB.nextId[table]++; save(); return id; }
+
+let DB = load();
+
+async function loadFromSupabase() {
+  const app = document.getElementById('app');
+  app.innerHTML = '<div style="padding:40px;text-align:center;color:#666">⏳ Cargando datos...</div>';
+  try {
+    const [config, temporadas, cargas, articulos, categorias, gastos, tc_bna] = await Promise.all([
+      sbGet('config', '?id=eq.main'),
+      sbGet('temporadas', '?order=id'),
+      sbGet('cargas', '?order=id'),
+      sbGet('articulos', '?order=id'),
+      sbGet('categorias', '?order=id'),
+      sbGet('gastos', '?order=id'),
+      sbGet('tc_bna', '?order=fecha'),
+    ]);
+    const cfg = config[0] || {};
+    DB = migrate({
+      nextId: cfg.next_id || { cargas: 41, articulos: 73, gastos: 310, categorias: 8, tc_bna: 1298, temporadas: 3 },
+      gastosHundidosPct: cfg.gastos_hundidos_pct ?? 8.5,
+      temporadas, cargas, articulos, categorias, gastos, tc_bna,
+      _temporadaAutoMigrada: true,
+    });
+  } catch(e) {
+    console.error('Error cargando desde Supabase:', e);
+    app.innerHTML = `<div style="padding:40px;text-align:center;color:#c00">❌ Error al cargar datos: ${e.message}<br><button onclick="location.reload()">Reintentar</button></div>`;
+    return;
+  }
+  renderAll();
+}
+
+/* ============================================================
+   ARCHIVO COMPARTIDO EN RED (File System Access API — Chrome/Edge)
+   ============================================================ */
+let SHARED_HANDLE = null;
+let SHARED_MODE = false;
+let sharedLastModified = null;
+let sharedSaveTimer = null;
+let sharedPollTimer = null;
+
+const IDB_NAME = 'costeo_cargas_idb';
+const IDB_STORE = 'handles';
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbSetHandle(handle) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(handle, 'sharedFileHandle');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbGetHandle() {
+  try {
+    const db = await idbOpen();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).get('sharedFileHandle');
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) { return null; }
+}
+
+function actualizarBotonCompartido() {
+  const btn = document.getElementById('btnConectarCompartido');
+  const status = document.getElementById('sharedStatus');
+  if (!btn || !status) return;
+  if (SHARED_MODE && SHARED_HANDLE) {
+    btn.textContent = '🔗 Cambiar archivo compartido';
+    status.textContent = `Compartido: ${SHARED_HANDLE.name} ✓`;
+  } else {
+    btn.textContent = '🔗 Conectar archivo compartido';
+    status.textContent = '';
+  }
+}
+
+async function conectarArchivoCompartido() {
+  if (!window.showOpenFilePicker) {
+    alert('Tu navegador no soporta esta función (hace falta Chrome o Edge). Mientras tanto, seguí usando "Exportar datos" / "Importar datos" para compartir manualmente.');
+    return;
+  }
+  let handle;
+  try {
+    [handle] = await window.showOpenFilePicker({
+      types: [{ description: 'Archivo de datos JSON', accept: {'application/json': ['.json']} }],
+    });
+  } catch (e) { return; } // el usuario cancelo el selector
+  await activarArchivoCompartido(handle, true);
+}
+
+async function activarArchivoCompartido(handle, esConexionNueva) {
+  let perm;
+  try { perm = await handle.requestPermission({ mode: 'readwrite' }); }
+  catch (e) { perm = await handle.queryPermission({ mode: 'readwrite' }); }
+  if (perm !== 'granted') {
+    if (esConexionNueva) alert('No se otorgó permiso de lectura/escritura sobre el archivo.');
+    return false;
+  }
+  let cargarComoEsta = false;
+  try {
+    const file = await handle.getFile();
+    const text = await file.text();
+    if (text.trim()) {
+      const parsed = JSON.parse(text);
+      if (parsed.cargas && parsed.nextId) {
+        if (!esConexionNueva || confirm(`Se va a reemplazar lo que tenés cargado ahora por el contenido de "${handle.name}". ¿Continuar?`)) {
+          DB = migrate(parsed);
+          cargarComoEsta = true;
+        } else {
+          return false;
+        }
+      }
+    }
+    sharedLastModified = file.lastModified;
+  } catch (e) { console.warn('Archivo vacío o ilegible, se inicializará con los datos actuales.'); }
+
+  SHARED_HANDLE = handle;
+  SHARED_MODE = true;
+  try { await idbSetHandle(handle); } catch (e) { /* no critico */ }
+  if (!cargarComoEsta) await escribirArchivoCompartido(); // primera vez: siembra el archivo con los datos actuales
+  iniciarPollingCompartido();
+  actualizarBotonCompartido();
+  renderAll();
+  return true;
+}
+
+async function escribirArchivoCompartido() {
+  if (!SHARED_HANDLE) return;
+  try {
+    const writable = await SHARED_HANDLE.createWritable();
+    await writable.write(JSON.stringify(DB, null, 2));
+    await writable.close();
+    const file = await SHARED_HANDLE.getFile();
+    sharedLastModified = file.lastModified;
+  } catch (e) { console.error('No se pudo guardar en el archivo compartido:', e); }
+}
+
+function iniciarPollingCompartido() {
+  if (sharedPollTimer) clearInterval(sharedPollTimer);
+  sharedPollTimer = setInterval(async () => {
+    if (!SHARED_HANDLE) return;
+    try {
+      const file = await SHARED_HANDLE.getFile();
+      if (sharedLastModified && file.lastModified > sharedLastModified) {
+        mostrarBannerArchivoActualizado();
+      }
+    } catch (e) { /* archivo movido o inaccesible */ }
+  }, 20000);
+}
+
+function mostrarBannerArchivoActualizado() {
+  if (document.getElementById('sharedUpdateBanner')) return;
+  const el = document.createElement('div');
+  el.id = 'sharedUpdateBanner';
+  el.className = 'warn';
+  el.style.margin = '10px 20px 0';
+  el.innerHTML = '⚠ Otra persona actualizó este archivo compartido. Tus cambios locales no se perdieron, pero puede que no veas lo último. <button onclick="recargarArchivoCompartido()">Recargar ahora</button>';
+  document.body.insertBefore(el, document.getElementById('mainNav'));
+}
+async function recargarArchivoCompartido() {
+  if (!SHARED_HANDLE) return;
+  const file = await SHARED_HANDLE.getFile();
+  const text = await file.text();
+  DB = migrate(JSON.parse(text));
+  sharedLastModified = file.lastModified;
+  const el = document.getElementById('sharedUpdateBanner');
+  if (el) el.remove();
+  renderAll();
+}
+
+// Al abrir la app, intentar reconectar en silencio si ya se habia conectado antes en este navegador
+(async () => {
+  if (!window.showOpenFilePicker) return;
+  const handle = await idbGetHandle();
+  if (!handle) return;
+  const perm = await handle.queryPermission({ mode: 'readwrite' });
+  if (perm === 'granted') {
+    await activarArchivoCompartido(handle, false);
+  } else {
+    const btn = document.getElementById('btnConectarCompartido');
+    if (btn) {
+      btn.textContent = `🔗 Reconectar (${handle.name})`;
+      btn.onclick = async () => { const ok = await activarArchivoCompartido(handle, false); if (!ok) conectarArchivoCompartido(); };
+    }
+  }
+})();
+
+/* ============================================================
+   LOGICA DE NEGOCIO
+   ============================================================ */
+const ESTADOS_CARGA = ['Coordinación', 'Embarcada / Tránsito', 'Arribada', 'Nacionalizada', 'Depósito', 'Costeo cerrado'];
+const ESTADO_BADGE = { 'Coordinación': 'b1', 'Embarcada / Tránsito': 'b2', 'Arribada': 'b3', 'Nacionalizada': 'b4', 'Depósito': 'b6', 'Costeo cerrado': 'b5' };
+const TIPOS_CARGA = ['40HQ', '40STD', '20STD', 'LCL'];
+const TIPOS_PRODUCTO = ['BLANQUERIA', 'PRENDAS', 'TELA'];
+const CATEGORIAS_NCM = ['Blanco', 'Teñido', 'Hilo color', 'Estampado'];
+const CAT_NCM_DATALIST = `<datalist id="cat-ncm-list">${CATEGORIAS_NCM.map(c=>`<option value="${c}">`).join('')}</datalist>`;
+function marcaHabilitada(tipo) { return tipo === 'PRENDAS'; }
+function anchoHabilitado(tipo) { return tipo === 'TELA' || tipo === 'BLANQUERIA'; }
+function unidadesParaTipo(tipo) {
+  if (tipo === 'TELA') return ['KG', 'MT'];
+  if (tipo === 'PRENDAS') return ['UNI'];
+  if (tipo === 'BLANQUERIA') return ['UNI', 'SET'];
+  return [];
+}
+
+function transitDays(etd, eta) {
+  if (!etd || !eta) return null;
+  const d1 = new Date(etd + 'T00:00:00'), d2 = new Date(eta + 'T00:00:00');
+  const diff = Math.round((d2 - d1) / 86400000);
+  return isNaN(diff) ? null : diff;
+}
+
+function getTC(fechaISO) {
+  const row = DB.tc_bna.find(t => t.fecha === fechaISO);
+  return row ? row.valor : null;
+}
+function gastoTC(g) {
+  if (g.estado !== 'Pagado' || !g.fecha_pago) return null;
+  if (g.tc_manual !== undefined && g.tc_manual !== null) return g.tc_manual;
+  return getTC(g.fecha_pago);
+}
+function gastoUSD(g) {
+  const tc = gastoTC(g);
+  if (tc === null) return null;
+  return g.monto_ars / tc;
+}
+function gastoUSDCosteo(g) {
+  const usd = gastoUSD(g);
+  if (usd === null) return null;
+  return usd - Number(g.iva_adicional_usd || 0);
+}
+function articulosDeCarga(carga_id) { return DB.articulos.filter(a => a.carga_id === carga_id); }
+function gastosDeCarga(carga_id) { return DB.gastos.filter(g => g.carga_id === carga_id); }
+function categoriaById(id) { return DB.categorias.find(c => c.id === id); }
+function articulosResumen(carga_id) {
+  const codigos = articulosDeCarga(carga_id).map(a=>a.cod_ketto).filter(Boolean);
+  if (codigos.length === 0) return '—';
+  if (codigos.length <= 2) return codigos.join(', ');
+  return `${codigos.slice(0,2).join(', ')} +${codigos.length-2} más`;
+}
+function proveedoresResumen(carga_id) {
+  const provs = [...new Set(articulosDeCarga(carga_id).map(a=>a.proveedor).filter(Boolean))];
+  if (provs.length === 0) return '—';
+  if (provs.length <= 2) return provs.join(', ');
+  return `${provs.slice(0,2).join(', ')} +${provs.length-2} más`;
+}
+
+function round2(n) { return Math.round((Number(n) + Number.EPSILON) * 100) / 100; }
+function qtyRealDesglose(a) {
+  return round2((a.desglose_ncm || []).reduce((s, d) => s + Number(d.qty_real || 0), 0));
+}
+function fobRealDesglose(a) {
+  return round2((a.desglose_ncm || []).reduce((s, d) => s + Number(d.qty_real || 0) * Number(d.unitario_real || 0), 0));
+}
+function qtyAduanaTotal(a) {
+  return round2((a.desglose_ncm || []).reduce((s, d) => s + Number(d.qty_aduana || 0), 0));
+}
+function fobAduanaDesglose(a) {
+  return round2((a.desglose_ncm || []).reduce((s, d) => s + Number(d.qty_aduana || 0) * Number(d.unitario_aduana || 0), 0));
+}
+function usaDesgloseReal(a) {
+  return a.tipo_producto === 'TELA' && qtyRealDesglose(a) > 0;
+}
+function articuloFobUsd(a) {
+  if (usaDesgloseReal(a)) return fobRealDesglose(a);
+  const qty = Number(a.qty_real ?? a.cantidad ?? 0);
+  const unit = Number(a.unitario_real ?? 0);
+  if (unit) return qty * unit;
+  return Number(a.fob_usd ?? 0); // compatibilidad con artículos cargados antes de que el FOB pasara a calcularse
+}
+function articuloQtyReal(a) {
+  if (usaDesgloseReal(a)) return qtyRealDesglose(a);
+  return round2(Number(a.qty_real ?? a.cantidad ?? 0));
+}
+function articuloUnitarioReal(a) {
+  if (usaDesgloseReal(a)) {
+    const qty = qtyRealDesglose(a);
+    return qty ? round2(fobRealDesglose(a) / qty) : null;
+  }
+  return a.unitario_real ?? null;
+}
+function articuloFobAduana(a) {
+  return fobAduanaDesglose(a);
+}
+
+function costeoDeCarga(carga_id) {
+  const arts = articulosDeCarga(carga_id);
+  const sumCBM = arts.reduce((s, a) => s + Number(a.cbm || 0), 0);
+  const sumFOB = arts.reduce((s, a) => s + articuloFobAduana(a), 0);
+  const gastos = gastosDeCarga(carga_id);
+
+  let bucketCBM = 0, bucketFOB = 0, pendientesARS = 0, pendientesCount = 0, sinCategoria = 0, sinTC = 0;
+  for (const g of gastos) {
+    if (g.estado !== 'Pagado') { pendientesARS += Number(g.monto_ars || 0); pendientesCount++; continue; }
+    const cat = categoriaById(g.categoria_id);
+    if (!cat) { sinCategoria++; continue; }
+    const usd = gastoUSDCosteo(g);
+    if (usd === null) { sinTC++; continue; }
+    if (cat.metodo === 'CBM') bucketCBM += usd; else bucketFOB += usd;
+  }
+  const totalGastosUSD = bucketCBM + bucketFOB;
+
+  const pctHundidos = Number(DB.gastosHundidosPct || 0);
+  const detalle = arts.map(a => {
+    const fobUsd = articuloFobUsd(a);
+    const pctCBM = sumCBM ? Number(a.cbm) / sumCBM : 0;
+    const pctFOB = sumFOB ? articuloFobAduana(a) / sumFOB : 0;
+    const asignado = pctCBM * bucketCBM + pctFOB * bucketFOB;
+    const costoBase = fobUsd + asignado;
+    const hundidosMonto = costoBase * (pctHundidos / 100);
+    const costoTotal = costoBase + hundidosMonto;
+    const cantidadUsada = articuloQtyReal(a);
+    const fobUnitario = cantidadUsada ? fobUsd / cantidadUsada : 0;
+    const costoBaseUnitario = cantidadUsada ? costoBase / cantidadUsada : 0;
+    const costoUnitario = cantidadUsada ? costoTotal / cantidadUsada : 0;
+    return { ...a, fob_usd: fobUsd, pctCBM, pctFOB, asignado, costoBase, hundidosMonto, costoTotal, cantidadUsada, fobUnitario, costoBaseUnitario, costoUnitario };
+  });
+
+  return { detalle, bucketCBM, bucketFOB, totalGastosUSD, pendientesARS, pendientesCount, sinCategoria, sinTC, sumCBM, sumFOB, pctHundidos };
+}
+
+/* ============================================================
+   HELPERS DE FORMATO
+   ============================================================ */
+const fmtUSD = n => n === null || n === undefined || isNaN(n) ? '—' : '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtARS = n => n === null || n === undefined || isNaN(n) ? '—' : Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtNum = n => n === null || n === undefined || isNaN(n) ? '—' : Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtNumEdit = n => (n === null || n === undefined || n === '') ? '' : (isNaN(Number(n)) ? '' : Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+const parseNum = s => { const n = parseFloat(String(s ?? '').replace(/,/g, '')); return isNaN(n) ? 0 : n; };
+const parseNumOrNull = s => { const raw = String(s ?? '').replace(/,/g, '').trim(); if (raw === '') return null; const n = parseFloat(raw); return isNaN(n) ? null : n; };
+const fmtPct = n => (Number(n) * 100).toFixed(1) + '%';
+const fmtDate = iso => iso ? new Date(iso + 'T00:00:00').toLocaleDateString('es-AR') : '—';
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+/* ============================================================
+   ESTADO DE NAVEGACION (SPA simple, sin frameworks)
+   ============================================================ */
+let VIEW = { tab: 'cargas', temporadaId: null, cargaId: null, subtab: 'articulos', expandedArticulo: null, estadoFiltro: null, articulosBusqueda: '', articulosTemporadaFiltro: null, articulosExpandido: null };
+
+const TABS = [
+  { id: 'cargas', label: 'Cargas' },
+  { id: 'articulos_global', label: 'Artículos' },
+  { id: 'categorias', label: 'Categorías' },
+  { id: 'tc', label: 'Tipo de Cambio (BNA)' },
+];
+
+function renderNav() {
+  const nav = document.getElementById('mainNav');
+  nav.innerHTML = TABS.map(t =>
+    `<button class="${VIEW.tab===t.id && !VIEW.cargaId ? 'active':''}" onclick="goTab('${t.id}')">${t.label}</button>`
+  ).join('');
+}
+function goTab(tabId) { VIEW = { tab: tabId, temporadaId: null, cargaId: null, subtab: 'articulos', expandedArticulo: null, estadoFiltro: null, articulosBusqueda: '', articulosTemporadaFiltro: null, articulosExpandido: null }; renderAll(); }
+function openTemporada(id) { VIEW.temporadaId = id; VIEW.cargaId = null; VIEW.expandedArticulo = null; VIEW.estadoFiltro = null; renderAll(); }
+function closeTemporada() { VIEW.temporadaId = null; VIEW.cargaId = null; VIEW.expandedArticulo = null; renderAll(); }
+function setEstadoFiltro(value) { VIEW.estadoFiltro = value || null; renderAll(); }
+function setArticulosBusqueda(value) { VIEW.articulosBusqueda = value || ''; renderAll(); }
+function setArticulosTemporadaFiltro(value) { VIEW.articulosTemporadaFiltro = (value==='todas') ? 'todas' : Number(value); renderAll(); }
+function toggleArticuloGlobal(clave) { VIEW.articulosExpandido = (VIEW.articulosExpandido === clave) ? null : clave; renderAll(); }
+function openCarga(id, subtab) {
+  const c = DB.cargas.find(x=>x.id===id);
+  VIEW.tab = 'cargas';
+  if (c) VIEW.temporadaId = c.temporada_id || 0;
+  VIEW.cargaId = id;
+  VIEW.subtab = subtab || 'articulos';
+  VIEW.expandedArticulo = null;
+  renderAll();
+}
+function closeCarga() { VIEW.cargaId = null; VIEW.expandedArticulo = null; renderAll(); }
+function toggleArticulo(id) { VIEW.expandedArticulo = (VIEW.expandedArticulo === id) ? null : id; renderAll(); }
+
+function renderAll() { renderNav(); renderPersistBanner(); renderMain(); actualizarBotonCompartido(); save(); }
+
+function renderPersistBanner() {
+  let el = document.getElementById('persistBanner');
+  if (!PERSIST_OK) {
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'persistBanner';
+      el.className = 'warn';
+      el.style.margin = '10px 20px 0';
+      el.textContent = '⚠ Tu navegador no permite guardado automático para este archivo abierto localmente. Usá "Exportar datos" antes de cerrar la página y "Importar datos" la próxima vez que la abras, para no perder lo cargado.';
+      document.body.insertBefore(el, document.getElementById('mainNav'));
+    }
+  } else if (el) { el.remove(); }
+}
+
+function renderMain() {
+  const app = document.getElementById('app');
+  if (VIEW.tab === 'cargas' && VIEW.temporadaId===null && !VIEW.cargaId) { app.innerHTML = viewTemporadasList(); return; }
+  if (VIEW.tab === 'cargas' && VIEW.temporadaId!==null && !VIEW.cargaId) { app.innerHTML = viewCargasList(VIEW.temporadaId); return; }
+  if (VIEW.tab === 'cargas' && VIEW.cargaId) { app.innerHTML = viewCargaDetail(VIEW.cargaId); return; }
+  if (VIEW.tab === 'articulos_global') { app.innerHTML = viewArticulosGlobal(); return; }
+  if (VIEW.tab === 'categorias') { app.innerHTML = viewCategorias(); return; }
+  if (VIEW.tab === 'tc') { app.innerHTML = viewTC(); return; }
+}
+
+/* ============================================================
+   VISTA: ARTICULOS (global, por código, ponderado entre BLs)
+   ============================================================ */
+function articulosPorCodigo(temporadaFiltro) {
+  const grupos = {};
+  const cargasFiltradas = temporadaFiltro === 'todas' ? DB.cargas : DB.cargas.filter(c => (c.temporada_id||0) === temporadaFiltro);
+  for (const carga of cargasFiltradas) {
+    const cost = costeoDeCarga(carga.id);
+    for (const d of cost.detalle) {
+      const clave = (d.cod_ketto || '').trim() || `(sin código) ${d.nombre}`;
+      if (!grupos[clave]) grupos[clave] = { codigo: d.cod_ketto || '', descripcion: d.nombre, instancias: [] };
+      grupos[clave].instancias.push({
+        cargaId: carga.id, bl: carga.bl, temporadaId: carga.temporada_id || 0,
+        fobReal: d.fob_usd, fobUnitario: d.fobUnitario,
+        costoTotal: d.costoTotal, cantidad: d.cantidadUsada, costoUnitario: d.costoUnitario,
+      });
+    }
+  }
+  return Object.values(grupos).map(g => {
+    const sumCosto = g.instancias.reduce((s,i)=>s+i.costoTotal,0);
+    const sumFobReal = g.instancias.reduce((s,i)=>s+i.fobReal,0);
+    const sumCantidad = g.instancias.reduce((s,i)=>s+i.cantidad,0);
+    const costoUnitarioPonderado = sumCantidad ? sumCosto/sumCantidad : 0;
+    const fobUnitarioPonderado = sumCantidad ? sumFobReal/sumCantidad : 0;
+    return { ...g, sumCosto, sumFobReal, sumCantidad, costoUnitarioPonderado, fobUnitarioPonderado };
+  }).sort((a,b) => (a.codigo||'zzz').localeCompare(b.codigo||'zzz', undefined, {numeric:true}));
+}
+
+function viewArticulosGlobal() {
+  const busqueda = (VIEW.articulosBusqueda || '').trim().toLowerCase();
+  if (VIEW.articulosTemporadaFiltro === undefined || VIEW.articulosTemporadaFiltro === null) {
+    // Por defecto, la temporada mas reciente (la de mayor id) — para no ponderar sin querer entre años distintos.
+    VIEW.articulosTemporadaFiltro = DB.temporadas.length ? DB.temporadas.reduce((max,t)=>t.id>max.id?t:max, DB.temporadas[0]).id : 'todas';
+  }
+  let grupos = articulosPorCodigo(VIEW.articulosTemporadaFiltro);
+  if (busqueda) {
+    grupos = grupos.filter(g => (g.codigo||'').toLowerCase().includes(busqueda) || (g.descripcion||'').toLowerCase().includes(busqueda));
+  }
+
+  const rows = grupos.map(g => {
+    const clave = g.codigo || `(sin código) ${g.descripcion}`;
+    const expandible = g.instancias.length > 1;
+    const expandido = expandible && VIEW.articulosExpandido === clave;
+    const blsHtml = g.instancias
+      .map(i => `<a onclick="event.stopPropagation(); openCarga(${i.cargaId},'gastos')" title="Ir al detalle de gastos">${esc(i.bl||'(Sin BL)')}</a>`)
+      .join(', ');
+    const codigoCelda = expandible
+      ? `<button class="link" onclick="toggleArticuloGlobal('${clave.replace(/'/g,"\\'")}')" style="font-weight:bold;">${expandido?'▾':'▸'} ${esc(g.codigo || '—')}</button>`
+      : `<b>${esc(g.codigo || '—')}</b>`;
+    const filaPrincipal = `<tr>
+      <td>${codigoCelda}</td>
+      <td>${esc(g.descripcion)}</td>
+      <td>${blsHtml}</td>
+      <td class="num">${fmtNum(g.sumCantidad)}</td>
+      <td class="num">${fmtUSD(g.fobUnitarioPonderado)}</td>
+      <td class="num"><b>${fmtUSD(g.costoUnitarioPonderado)}</b>${expandible ? ' <span class="muted" title="Promedio ponderado por cantidad entre varios BL">⚖</span>' : ''}</td>
+    </tr>`;
+    const filaDetalle = expandido ? `<tr class="no-print-collapse"><td colspan="6" style="padding:0; background:#fafbfc;">
+      <table class="compact" style="margin:6px 10px; width:calc(100% - 20px);">
+        <thead><tr><th>BL</th><th class="num">Cantidad</th><th class="num">FOB Real Unitario (USD)</th><th class="num">Costo Unitario (USD)</th></tr></thead>
+        <tbody>
+          ${g.instancias.map(i => `<tr>
+            <td><a onclick="openCarga(${i.cargaId},'gastos')">${esc(i.bl||'(Sin BL)')}</a></td>
+            <td class="num">${fmtNum(i.cantidad)}</td>
+            <td class="num">${fmtUSD(i.fobUnitario)}</td>
+            <td class="num">${fmtUSD(i.costoUnitario)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </td></tr>` : '';
+    return filaPrincipal + filaDetalle;
+  }).join('');
+
+  const opcionesTemporada = `
+    <option value="todas" ${VIEW.articulosTemporadaFiltro==='todas'?'selected':''}>Todas las temporadas</option>
+    ${DB.temporadas.map(t=>`<option value="${t.id}" ${t.id===VIEW.articulosTemporadaFiltro?'selected':''}>${esc(t.nombre)}</option>`).join('')}
+    <option value="0" ${VIEW.articulosTemporadaFiltro===0?'selected':''}>(Sin temporada asignada)</option>
+  `;
+  const temporadaFiltroNombre = VIEW.articulosTemporadaFiltro === 'todas' ? 'Todas las temporadas'
+    : VIEW.articulosTemporadaFiltro === 0 ? '(Sin temporada asignada)'
+    : (DB.temporadas.find(t=>t.id===VIEW.articulosTemporadaFiltro)?.nombre || '—');
+
+  return `
+  <div class="card no-print">
+    <h2>Costos por artículo</h2>
+    <div class="form-grid">
+      <div><label>Temporada <span class="muted">(el costo ponderado solo mezcla BL dentro de la misma temporada)</span></label>
+        <select onchange="setArticulosTemporadaFiltro(this.value)">${opcionesTemporada}</select>
+      </div>
+      <div><label>Buscar por código o descripción</label><input value="${esc(VIEW.articulosBusqueda||'')}" oninput="setArticulosBusqueda(this.value)" placeholder="Ej: 809 o PLUSH"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <h2 style="margin:0;">Artículos (${grupos.length}) <span class="muted" style="font-weight:normal; font-size:12px;">· ${esc(temporadaFiltroNombre)}</span></h2>
+      <button class="no-print" onclick="window.print()">🖨 Exportar a PDF</button>
+    </div>
+    ${grupos.length === 0 ? '<div class="empty">No hay artículos que coincidan.</div>' : `
+    <div style="overflow-x:auto; margin-top:10px;">
+    <table class="compact">
+      <thead><tr>
+        <th>Código</th><th>Descripción</th><th>BL(s)</th>
+        <th class="num">Cantidad</th><th class="num">FOB Real Unitario (USD)</th><th class="num">Costo Unitario (USD)</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    </div>`}
+    <p class="footer-note">⚖ = el código aparece en más de un BL; el valor es el promedio ponderado por cantidad. Hacé clic en el código (▸) para ver el detalle por BL, o en un BL para ir directo a su detalle de gastos.</p>
+  </div>`;
+}
+
+/* ============================================================
+   VISTA: TEMPORADAS
+   ============================================================ */
+function temporadaStats(temporadaId) {
+  const cargas = DB.cargas.filter(c => (c.temporada_id||0) === temporadaId);
+  const totalCosto = cargas.reduce((s, c) => {
+    const cost = costeoDeCarga(c.id);
+    return s + cost.detalle.reduce((s2, d) => s2 + d.costoTotal, 0);
+  }, 0);
+  return { count: cargas.length, totalCosto };
+}
+
+function viewTemporadasList() {
+  const rows = DB.temporadas.map(t => {
+    const stats = temporadaStats(t.id);
+    return `<tr>
+      <td><b>${esc(t.nombre)}</b></td>
+      <td class="num">${stats.count}</td>
+      <td class="num">${fmtUSD(stats.totalCosto)}</td>
+      <td class="row-actions">
+        <button class="link" onclick="openTemporada(${t.id})">Ver cargas</button>
+        <button class="link danger" onclick="deleteTemporada(${t.id})">Eliminar</button>
+      </td>
+    </tr>`;
+  }).join('');
+  const sinTemporadaCount = DB.cargas.filter(c => !c.temporada_id).length;
+  const sinTemporadaStats = temporadaStats(0);
+  const sinTemporadaRow = sinTemporadaCount > 0 ? `<tr>
+    <td><span class="muted">(Sin temporada asignada)</span></td>
+    <td class="num">${sinTemporadaCount}</td>
+    <td class="num">${fmtUSD(sinTemporadaStats.totalCosto)}</td>
+    <td class="row-actions"><button class="link" onclick="openTemporada(0)">Ver cargas</button></td>
+  </tr>` : '';
+
+  return `
+  <div class="card">
+    <h2>Nueva temporada</h2>
+    <div class="form-grid">
+      <div><label>Nombre de la temporada</label><input id="tf_temporada_nombre" placeholder="Ej: Otoño-Invierno 2026"></div>
+      <div><button class="primary" onclick="addTemporada()">+ Crear temporada</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Temporadas (${DB.temporadas.length})</h2>
+    ${(DB.temporadas.length === 0 && sinTemporadaCount === 0) ? '<div class="empty">Todavía no creaste ninguna temporada.</div>' : `
+    <table><thead><tr><th>Temporada</th><th class="num">Cargas</th><th class="num">Costo total (USD)</th><th></th></tr></thead>
+    <tbody>${rows}${sinTemporadaRow}</tbody></table>`}
+    <p class="footer-note">Separá tus cargas por temporada para no mezclar todo el historial en un solo listado. Entrá a una temporada para ver, agregar o editar sus cargas.</p>
+  </div>`;
+}
+async function addTemporada() {
+  const nombre = document.getElementById('tf_temporada_nombre').value.trim();
+  if (!nombre) { alert('Ingresá un nombre para la temporada'); return; }
+  const id = nextId('temporadas');
+  const row = { id, nombre };
+  DB.temporadas.push(row);
+  await sbInsert('temporadas', row).catch(e => console.warn('addTemporada:', e));
+  openTemporada(id);
+}
+async function deleteTemporada(id) {
+  if (!confirm('¿Eliminar esta temporada? Las cargas que la usan quedarán sin temporada asignada (no se borran).')) return;
+  DB.temporadas = DB.temporadas.filter(t=>t.id!==id);
+  DB.cargas.forEach(c => { if (c.temporada_id === id) c.temporada_id = null; });
+  await sbDelete('temporadas', id).catch(e => console.warn('deleteTemporada:', e));
+  renderAll();
+}
+
+/* ============================================================
+   VISTA: LISTADO DE CARGAS
+   ============================================================ */
+function viewCargasList(temporadaId) {
+  const temporada = temporadaId > 0 ? DB.temporadas.find(t=>t.id===temporadaId) : null;
+  const temporadaNombre = temporadaId > 0 ? (temporada ? temporada.nombre : '—') : '(Sin temporada asignada)';
+  const embarqueDeCarga = c => c.fecha_embarque || c.etd || null;
+  const cargasFiltradas = DB.cargas
+    .filter(c => (c.temporada_id||0) === temporadaId)
+    .filter(c => !VIEW.estadoFiltro || c.estado === VIEW.estadoFiltro)
+    .slice()
+    .sort((a, b) => {
+      const fa = embarqueDeCarga(a), fb = embarqueDeCarga(b);
+      if (!fa && !fb) return 0;
+      if (!fa) return 1;
+      if (!fb) return -1;
+      return fa < fb ? -1 : (fa > fb ? 1 : 0);
+    });
+
+  let totalFobReal = 0, totalGastos = 0, totalHundidos = 0, totalGeneral = 0;
+  const rows = cargasFiltradas.map(c => {
+    const cost = costeoDeCarga(c.id);
+    const totalCosto = cost.detalle.reduce((s, d) => s + d.costoTotal, 0);
+    const fobRealCarga = cost.detalle.reduce((s, d) => s + articuloFobUsd(d), 0);
+    const hundidosCarga = cost.detalle.reduce((s, d) => s + d.hundidosMonto, 0);
+    const nArts = cost.detalle.length;
+    totalFobReal += fobRealCarga;
+    totalGastos += cost.totalGastosUSD;
+    totalHundidos += hundidosCarga;
+    totalGeneral += totalCosto;
+    const warn = cost.pendientesCount > 0 ? `<span class="muted" title="Gastos aún no pagados, no incluidos en el costeo">⚠ ${cost.pendientesCount} pend.</span>` : '';
+    const embarque = embarqueDeCarga(c);
+    return `<tr>
+      <td title="${esc(c.nro_orden_naviera||'')}">${esc(c.nro_orden_naviera||'—')}</td>
+      <td title="${esc(c.bl||'')}"><b>${c.bl ? esc(c.bl) : '<span class="muted">(Sin BL)</span>'}</b></td>
+      <td title="${esc(c.buque||'')}">${esc(c.buque||'—')}</td>
+      <td title="${esc(proveedoresResumen(c.id))}">${esc(proveedoresResumen(c.id))}</td>
+      <td title="${esc(articulosResumen(c.id))}">${esc(articulosResumen(c.id))}</td>
+      <td>${fmtDate(embarque)}</td>
+      <td>${fmtDate(c.eta)}</td>
+      <td title="${esc(c.estado)}"><span class="badge ${ESTADO_BADGE[c.estado]||'b1'}">${esc(c.estado)}</span></td>
+      <td class="num">${nArts}</td>
+      <td class="num">${fmtUSD(fobRealCarga)}</td>
+      <td class="num">${fmtUSD(cost.totalGastosUSD)}</td>
+      <td class="num">${fmtUSD(hundidosCarga)}</td>
+      <td class="num">${warn}</td>
+      <td class="num"><b>${fmtUSD(totalCosto)}</b></td>
+      <td class="row-actions no-print">
+        <button class="link" onclick="openCarga(${c.id})" title="Ver detalle">Ver</button>
+        <button class="link danger" onclick="deleteCarga(${c.id})" title="Eliminar">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="breadcrumb no-print"><a onclick="closeTemporada()">← Volver a Temporadas</a></div>
+  <div class="card no-print">
+    <h2>Nueva carga (BL) <span class="muted">— ${esc(temporadaNombre)}</span></h2>
+    <div class="form-grid">
+      <div><label>N° de BL <span class="muted">(si todavía no lo tenés, dejalo en blanco)</span></label><input id="nf_bl" placeholder="Ej: MSCU1234567"></div>
+      <div><label>Fecha de embarque</label><input id="nf_fecha" type="date"></div>
+      <div><label>ETA (estimada)</label><input id="nf_eta" type="date"></div>
+      <div><label>Estado</label>
+        <select id="nf_estado">${ESTADOS_CARGA.map(e=>`<option>${e}</option>`).join('')}</select>
+      </div>
+      <div><button class="primary" onclick="addCarga()">+ Agregar carga</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <h2 style="margin:0;">Cargas marítimas — ${esc(temporadaNombre)} (${cargasFiltradas.length})${VIEW.estadoFiltro ? ` <span class="muted" style="font-weight:normal; font-size:12px;">· filtrado por ${esc(VIEW.estadoFiltro)}</span>` : ''}</h2>
+      <div class="no-print" style="display:flex; gap:8px; align-items:center;">
+        <select onchange="setEstadoFiltro(this.value)" style="width:auto;">
+          <option value="">Todos los estados</option>
+          ${ESTADOS_CARGA.map(e=>`<option ${e===VIEW.estadoFiltro?'selected':''}>${e}</option>`).join('')}
+        </select>
+        <button onclick="window.print()">🖨 Exportar a PDF</button>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:14px;">
+      <div class="muted">FOB real total: <b>${fmtUSD(totalFobReal)}</b></div>
+      <div class="muted">Gastos pagados total: <b>${fmtUSD(totalGastos)}</b></div>
+      <div class="muted">Gastos hundidos total: <b>${fmtUSD(totalHundidos)}</b></div>
+      <div class="muted" style="grid-column: 1 / -1;">Costo total: <b>${fmtUSD(totalGeneral)}</b></div>
+    </div>
+    ${cargasFiltradas.length === 0 ? '<div class="empty">No hay cargas que coincidan con el filtro aplicado.</div>' : `
+    <div style="overflow-x:auto; margin-top:10px;">
+    <table class="compact fixed-cols">
+      <colgroup>
+        <col style="width:4%"><col style="width:9%"><col style="width:8%"><col style="width:9%">
+        <col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:7%">
+        <col style="width:3%"><col style="width:8%"><col style="width:8%"><col style="width:8%">
+        <col style="width:4%"><col style="width:9%"><col style="width:5%">
+      </colgroup>
+      <thead><tr>
+        <th>N° int.</th><th>BL</th><th>Buque</th><th>Proveedor(es)</th><th>Artículo(s)</th>
+        <th>Embarque</th><th>ETA</th><th>Estado</th>
+        <th class="num">Art.</th><th class="num">FOB Real (USD)</th><th class="num">Gastos (USD)</th><th class="num">Gastos Hundidos (USD)</th><th></th>
+        <th class="num">Total (USD)</th><th class="no-print"></th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    </div>`}
+    <p class="footer-note">El costo total solo incluye gastos marcados como "Pagado". Los pendientes se muestran aparte y no afectan el costeo hasta que se paguen. "Embarque" muestra la fecha real; si todavía no la tenés, muestra el ETD estimado.</p>
+  </div>`;
+}
+
+async function addCarga() {
+  const bl = document.getElementById('nf_bl').value.trim();
+  const id = nextId('cargas');
+  const row = {
+    id, bl,
+    temporada_id: VIEW.temporadaId || null,
+    fecha_embarque: document.getElementById('nf_fecha').value || null,
+    eta: document.getElementById('nf_eta').value || null,
+    estado: document.getElementById('nf_estado').value,
+    nro_orden_naviera: '', nro_contenedor: '', tipo_carga: '', buque: '',
+    puerto_origen: '', terminal: '', forwarder: '', etd: '',
+    fecha_despacho: '', nro_despacho: '', valor_flete_ref: null, comentarios: '', etd_historial: [],
+  };
+  DB.cargas.push(row);
+  await sbInsert('cargas', row).catch(e => console.warn('addCarga:', e));
+  renderAll();
+}
+async function deleteCarga(id) {
+  if (!confirm('¿Eliminar esta carga? También se borran sus artículos y gastos asociados.')) return;
+  DB.cargas = DB.cargas.filter(c => c.id !== id);
+  DB.articulos = DB.articulos.filter(a => a.carga_id !== id);
+  DB.gastos = DB.gastos.filter(g => g.carga_id !== id);
+  await sbDelete('cargas', id).catch(e => console.warn('deleteCarga:', e));
+  renderAll();
+}
+
+/* ============================================================
+   VISTA: DETALLE DE CARGA (articulos / gastos / costeo)
+   ============================================================ */
+function viewCargaDetail(id) {
+  const c = DB.cargas.find(x => x.id === id);
+  if (!c) { closeCarga(); return ''; }
+  const sub = VIEW.subtab;
+  return `
+  <div class="breadcrumb"><a onclick="closeCarga()">← Volver a Cargas</a></div>
+  <div class="card">
+    <h2>${c.bl ? esc(c.bl) : '<span class="muted">(BL pendiente)</span>'} <span class="badge ${ESTADO_BADGE[c.estado]||'b1'}">${esc(c.estado)}</span></h2>
+    <h3>Datos generales</h3>
+    <div class="form-grid">
+      <div><label>N° de BL</label><input value="${esc(c.bl||'')}" placeholder="Aún no asignado" onchange="updCarga(${id},'bl',this.value.trim())"></div>
+      <div><label>Forwarder</label><input value="${esc(c.forwarder||'')}" onchange="updCarga(${id},'forwarder',this.value)"></div>
+      <div><label>N° orden interno</label><input value="${esc(c.nro_orden_naviera||'')}" onchange="updCarga(${id},'nro_orden_naviera',this.value)"></div>
+      <div><label>N° contenedor</label><input value="${esc(c.nro_contenedor||'')}" onchange="updCarga(${id},'nro_contenedor',this.value)"></div>
+      <div><label>Tipo de carga</label>
+        <select onchange="updCarga(${id},'tipo_carga',this.value)">
+          <option value="" ${!c.tipo_carga?'selected':''}>—</option>
+          ${TIPOS_CARGA.map(t=>`<option ${t===c.tipo_carga?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
+      <div><label>Buque</label><input value="${esc(c.buque||'')}" onchange="updCarga(${id},'buque',this.value)"></div>
+      <div><label>Estado</label>
+        <select onchange="updCarga(${id},'estado',this.value)">
+          ${ESTADOS_CARGA.map(e=>`<option ${e===c.estado?'selected':''}>${e}</option>`).join('')}
+        </select>
+      </div>
+      <div><label>Temporada</label>
+        <select onchange="updCarga(${id},'temporada_id',this.value?Number(this.value):null)">
+          <option value="" ${!c.temporada_id?'selected':''}>(Sin temporada)</option>
+          ${DB.temporadas.map(t=>`<option value="${t.id}" ${t.id===c.temporada_id?'selected':''}>${esc(t.nombre)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <h3>Origen y transporte</h3>
+    <div class="form-grid">
+      <div><label>Puerto de origen</label><input value="${esc(c.puerto_origen||'')}" onchange="updCarga(${id},'puerto_origen',this.value)"></div>
+      <div><label>Terminal</label><input value="${esc(c.terminal||'')}" onchange="updCarga(${id},'terminal',this.value)"></div>
+      <div><label>Fecha de embarque</label><input type="date" value="${c.fecha_embarque||''}" onchange="updCarga(${id},'fecha_embarque',this.value)"></div>
+      <div><label>ETD</label><input type="date" value="${c.etd||''}" onchange="updCarga(${id},'etd',this.value)"></div>
+      <div><label>ETA</label><input type="date" value="${c.eta||''}" onchange="updCarga(${id},'eta',this.value)"></div>
+      <div><label>Transit time</label><input value="${transitDays(c.etd,c.eta)!==null ? transitDays(c.etd,c.eta)+' días' : '—'}" disabled></div>
+      <div><label>Valor flete (USD, referencia)</label><input type="text" inputmode="decimal" value="${fmtNumEdit(c.valor_flete_ref)}" onchange="updCarga(${id},'valor_flete_ref',parseNumOrNull(this.value))"></div>
+    </div>
+    ${c.etd_historial && c.etd_historial.length ? `
+    <div class="muted" style="margin-top:10px;">
+      <b>Historial de ETD</b> (${c.etd_historial.length} cambio${c.etd_historial.length>1?'s':''})
+      <ul style="margin:4px 0 0; padding-left:18px;">
+        ${[...c.etd_historial].reverse().map(h => `<li>${fmtDate(h.etd_anterior)} → ${fmtDate(h.etd_nuevo)} <span class="muted">(actualizado el ${fmtDate(h.fecha_cambio)})</span></li>`).join('')}
+      </ul>
+    </div>` : ''}
+    <h3>Despacho y otros</h3>
+    <div class="form-grid">
+      <div><label>Fecha de despacho</label><input type="date" value="${c.fecha_despacho||''}" onchange="updCarga(${id},'fecha_despacho',this.value)"></div>
+      <div><label>N° de despacho</label><input value="${esc(c.nro_despacho||'')}" onchange="updCarga(${id},'nro_despacho',this.value)"></div>
+      <div style="grid-column: 1 / -1;"><label>Comentarios</label><textarea rows="2" onchange="updCarga(${id},'comentarios',this.value)">${esc(c.comentarios||'')}</textarea></div>
+    </div>
+  </div>
+  <div class="subtabs">
+    <button class="${sub==='articulos'?'active':''}" onclick="openCarga(${id},'articulos')">Artículos</button>
+    <button class="${sub==='gastos'?'active':''}" onclick="openCarga(${id},'gastos')">Gastos</button>
+    <button class="${sub==='costeo'?'active':''}" onclick="openCarga(${id},'costeo')">Costeo</button>
+  </div>
+  ${sub==='articulos' ? subArticulos(id) : ''}
+  ${sub==='gastos' ? subGastos(id) : ''}
+  ${sub==='costeo' ? subCosteo(id) : ''}
+  `;
+}
+function updCarga(id, field, value) {
+  const c = DB.cargas.find(x=>x.id===id);
+  if (!c) return;
+  if (field === 'etd' && (c.etd || '') !== value) {
+    if (!c.etd_historial) c.etd_historial = [];
+    c.etd_historial.push({ fecha_cambio: new Date().toISOString().slice(0,10), etd_anterior: c.etd || null, etd_nuevo: value || null });
+    sbUpdate('cargas', id, { etd_historial: c.etd_historial }).catch(e => console.warn('updCarga etd_historial:', e));
+  }
+  c[field] = value;
+  sbUpdate('cargas', id, { [field]: value }).catch(e => console.warn('updCarga:', e));
+  renderAll();
+}
+
+/* ---- Sub: Articulos ---- */
+function articuloDetailForm(a) {
+  const marcaOk = marcaHabilitada(a.tipo_producto);
+  const anchoOk = anchoHabilitado(a.tipo_producto);
+  const udmOpts = unidadesParaTipo(a.tipo_producto);
+  const esTela = a.tipo_producto === 'TELA';
+  const unica = (a.desglose_ncm && a.desglose_ncm[0]) || { categoria: '', ncm_real: '', ncm_declarar: '', qty_real: 0, unitario_real: null, qty_aduana: 0, unitario_aduana: null };
+  const unitarioRealCalc = articuloUnitarioReal(a);
+  return `<div class="art-detail">
+    <h4>Datos principales</h4>
+    <div class="form-grid">
+      <div><label>Código</label><input value="${esc(a.cod_ketto||'')}" onchange="updArticulo(${a.id},'cod_ketto',this.value)"></div>
+      <div><label>Descripción</label><input value="${esc(a.nombre||'')}" onchange="updArticulo(${a.id},'nombre',this.value)"></div>
+      <div><label>Tipo</label>
+        <select onchange="updArticulo(${a.id},'tipo_producto',this.value)">
+          <option value="" ${!a.tipo_producto?'selected':''}>—</option>
+          ${TIPOS_PRODUCTO.map(t=>`<option ${t===a.tipo_producto?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
+      <div><label>Unidad de medida</label>
+        <select ${udmOpts.length?'':'disabled'} onchange="updArticulo(${a.id},'un_medida',this.value)">
+          <option value="" ${!a.un_medida?'selected':''}>—</option>
+          ${udmOpts.map(u=>`<option ${u===a.un_medida?'selected':''}>${u}</option>`).join('')}
+        </select>
+      </div>
+      <div><label>Marca</label><input value="${esc(a.marca||'')}" ${marcaOk?'':'disabled placeholder="Solo para Prendas"'} onchange="updArticulo(${a.id},'marca',this.value)"></div>
+      <div><label>Ancho / Medida</label><input value="${esc(a.ancho||'')}" ${anchoOk?'':'disabled placeholder="Solo para Tela o Blanquería"'} onchange="updArticulo(${a.id},'ancho',this.value)"></div>
+      <div><label>GSM / GxU</label><input value="${esc(a.gsm||'')}" onchange="updArticulo(${a.id},'gsm',this.value)"></div>
+    </div>
+    <h4>Identificación / Proveedor</h4>
+    <div class="form-grid">
+      <div><label>Proveedor</label><input value="${esc(a.proveedor||'')}" onchange="updArticulo(${a.id},'proveedor',this.value)"></div>
+      <div><label>Código proveedor</label><input value="${esc(a.cod_proveedor||'')}" onchange="updArticulo(${a.id},'cod_proveedor',this.value)"></div>
+      <div><label>N° PI</label><input value="${esc(a.nro_pi||'')}" onchange="updArticulo(${a.id},'nro_pi',this.value)"></div>
+    </div>
+    <h4>Cantidades y precios</h4>
+    <div class="form-grid">
+      <div><label>CBM</label><input type="text" inputmode="decimal" value="${fmtNumEdit(a.cbm)}" onchange="updArticulo(${a.id},'cbm',parseNum(this.value))"></div>
+    </div>
+    <h5 style="margin:10px 0 6px; font-size:12px; color:var(--gray); text-transform:uppercase; letter-spacing:.03em;">Valores reales</h5>
+    <div class="form-grid">
+      <div><label>Qty Total Compra</label><input type="text" inputmode="decimal" value="${fmtNumEdit(a.qty_compra)}" onchange="updArticulo(${a.id},'qty_compra',parseNum(this.value))"></div>
+      ${esTela ? `
+      <div><label>Qty Total Real <span class="muted">(= suma del desglose de NCM)</span></label><input value="${fmtNum(articuloQtyReal(a))}" disabled></div>
+      <div><label>Unitario Real (USD) <span class="muted">(promedio ponderado)</span></label><input value="${fmtNum(unitarioRealCalc)}" disabled></div>
+      ` : `
+      <div><label>Qty Total Real</label><input type="text" inputmode="decimal" value="${fmtNumEdit(a.qty_real)}" onchange="updArticulo(${a.id},'qty_real',parseNum(this.value))"></div>
+      <div><label>Unitario Real (USD)</label><input type="text" inputmode="decimal" value="${fmtNumEdit(a.unitario_real)}" onchange="updArticulo(${a.id},'unitario_real',parseNumOrNull(this.value))"></div>
+      `}
+      <div><label>FOB Real (USD) <span class="muted">(calculado)</span></label><input value="${fmtUSD(articuloFobUsd(a))}" disabled></div>
+    </div>
+    <h5 style="margin:10px 0 6px; font-size:12px; color:var(--gray); text-transform:uppercase; letter-spacing:.03em;">Valores de aduana</h5>
+    <div class="form-grid">
+      ${esTela ? `
+      <div><label>Qty Total Aduana <span class="muted">(= suma del desglose de NCM)</span></label><input value="${fmtNum(qtyAduanaTotal(a))}" disabled></div>
+      ` : `
+      <div><label>NCM real</label><input value="${esc(unica.ncm_real||'')}" onchange="updDesgloseUnico(${a.id},'ncm_real',this.value)"></div>
+      <div><label>NCM a declarar en BL</label><input value="${esc(unica.ncm_declarar||'')}" onchange="updDesgloseUnico(${a.id},'ncm_declarar',this.value)"></div>
+      <div><label>Qty Total Aduana</label><input type="text" inputmode="decimal" value="${fmtNumEdit(unica.qty_aduana)}" onchange="updDesgloseUnico(${a.id},'qty_aduana',parseNum(this.value))"></div>
+      <div><label>Unitario Aduana (USD)</label><input type="text" inputmode="decimal" value="${fmtNumEdit(unica.unitario_aduana)}" onchange="updDesgloseUnico(${a.id},'unitario_aduana',parseNumOrNull(this.value))"></div>
+      `}
+      <div><label>FOB Aduana (USD) <span class="muted">(calculado)</span></label><input value="${fmtUSD(articuloFobAduana(a))}" disabled></div>
+    </div>
+    <h4>Composición</h4>
+    <div class="form-grid">
+      <div style="grid-column: span 1;"><label>Composición real</label><input value="${esc(a.composicion_real||'')}" onchange="updArticulo(${a.id},'composicion_real',this.value)"></div>
+      <div style="grid-column: span 1;"><label>Composición a declarar en etiqueta</label><input value="${esc(a.composicion_etiqueta||'')}" onchange="updArticulo(${a.id},'composicion_etiqueta',this.value)"></div>
+    </div>
+    ${esTela ? desgloseNcmSection(a) : ''}
+  </div>`;
+}
+
+function desgloseNcmSection(a) {
+  const lineas = a.desglose_ncm || [];
+  const rows = lineas.map((d, idx) => `<tr>
+    <td><input list="cat-ncm-list" value="${esc(d.categoria||'')}" onchange="updDesgloseNcm(${a.id},${idx},'categoria',this.value)" style="width:100px"></td>
+    <td><input value="${esc(d.ncm_real||'')}" onchange="updDesgloseNcm(${a.id},${idx},'ncm_real',this.value)" style="width:110px"></td>
+    <td><input value="${esc(d.ncm_declarar||'')}" onchange="updDesgloseNcm(${a.id},${idx},'ncm_declarar',this.value)" style="width:110px"></td>
+    <td class="num"><input type="text" inputmode="decimal" value="${fmtNumEdit(d.qty_real)}" onchange="updDesgloseNcm(${a.id},${idx},'qty_real',parseNum(this.value))" style="text-align:right; width:100px"></td>
+    <td class="num"><input type="text" inputmode="decimal" value="${fmtNumEdit(d.unitario_real)}" onchange="updDesgloseNcm(${a.id},${idx},'unitario_real',parseNumOrNull(this.value))" style="text-align:right; width:100px"></td>
+    <td class="num"><input type="text" inputmode="decimal" value="${fmtNumEdit(d.qty_aduana)}" onchange="updDesgloseNcm(${a.id},${idx},'qty_aduana',parseNum(this.value))" style="text-align:right; width:100px"></td>
+    <td class="num"><input type="text" inputmode="decimal" value="${fmtNumEdit(d.unitario_aduana)}" onchange="updDesgloseNcm(${a.id},${idx},'unitario_aduana',parseNumOrNull(this.value))" style="text-align:right; width:100px"></td>
+    <td><button class="link danger" onclick="deleteDesgloseNcm(${a.id},${idx})">Eliminar</button></td>
+  </tr>`).join('');
+  const totalReal = qtyRealDesglose(a);
+  const totalAduana = qtyAduanaTotal(a);
+  return `
+    <h4>Desglose de NCM por color / tipo</h4>
+    <p class="footer-note">La composición es la misma para todos los colores; lo que cambia es la NCM según el acabado (blanco, teñido, hilo color, estampado) — y a veces también el precio real o de aduana de esa posición. Cargá cada posición como una línea, con su propia cantidad y precio.</p>
+    ${CAT_NCM_DATALIST}
+    ${lineas.length ? `<div style="overflow-x:auto;"><table><thead><tr><th>Categoría</th><th>NCM real</th><th>NCM a declarar en BL</th><th class="num">Qty Real</th><th class="num">Unitario Real</th><th class="num">Qty Aduana</th><th class="num">Unitario Aduana</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">Sin líneas de NCM cargadas todavía.</div>'}
+    <div style="margin-top:8px;"><button onclick="addDesgloseNcm(${a.id})">+ Agregar línea de NCM</button></div>
+    ${lineas.length>0 ? `<p class="footer-note" style="margin-top:8px;">Qty Total Real (suma de líneas): ${fmtNum(totalReal)} — Qty Total Aduana (suma de líneas): ${fmtNum(totalAduana)}.</p>` : ''}
+  `;
+}
+function addDesgloseNcm(articuloId) {
+  const a = DB.articulos.find(x=>x.id===articuloId);
+  if (!a) return;
+  if (!a.desglose_ncm) a.desglose_ncm = [];
+  a.desglose_ncm.push({ categoria: '', ncm_real: '', ncm_declarar: '', qty_real: 0, unitario_real: null, qty_aduana: 0, unitario_aduana: null });
+  sbUpdate('articulos', articuloId, { desglose_ncm: a.desglose_ncm }).catch(e => console.warn('addDesgloseNcm:', e));
+  renderAll();
+}
+function updDesgloseNcm(articuloId, idx, field, value) {
+  const a = DB.articulos.find(x=>x.id===articuloId);
+  if (!a || !a.desglose_ncm || !a.desglose_ncm[idx]) return;
+  a.desglose_ncm[idx][field] = value;
+  sbUpdate('articulos', articuloId, { desglose_ncm: a.desglose_ncm }).catch(e => console.warn('updDesgloseNcm:', e));
+  renderAll();
+}
+function deleteDesgloseNcm(articuloId, idx) {
+  const a = DB.articulos.find(x=>x.id===articuloId);
+  if (!a || !a.desglose_ncm) return;
+  a.desglose_ncm.splice(idx, 1);
+  sbUpdate('articulos', articuloId, { desglose_ncm: a.desglose_ncm }).catch(e => console.warn('deleteDesgloseNcm:', e));
+  renderAll();
+}
+function updDesgloseUnico(articuloId, field, value) {
+  const a = DB.articulos.find(x=>x.id===articuloId);
+  if (!a) return;
+  if (!a.desglose_ncm || a.desglose_ncm.length === 0) a.desglose_ncm = [{ categoria: '', ncm_real: '', ncm_declarar: '', qty_real: 0, unitario_real: null, qty_aduana: 0, unitario_aduana: null }];
+  a.desglose_ncm[0][field] = value;
+  sbUpdate('articulos', articuloId, { desglose_ncm: a.desglose_ncm }).catch(e => console.warn('updDesgloseUnico:', e));
+  renderAll();
+}
+
+function subArticulos(cargaId) {
+  const arts = articulosDeCarga(cargaId);
+  const rows = arts.map(a => {
+    const expanded = VIEW.expandedArticulo === a.id;
+    const summary = `<tr>
+      <td>${esc(a.nombre)}</td>
+      <td class="num">${fmtNum(a.cbm)}</td>
+      <td class="num">${fmtUSD(articuloFobUsd(a))}</td>
+      <td class="num">${fmtNum(articuloQtyReal(a))}</td>
+      <td>${esc(a.proveedor||'—')}</td>
+      <td class="row-actions">
+        <button class="link" onclick="toggleArticulo(${a.id})">${expanded ? 'Ocultar ficha' : 'Ver ficha'}</button>
+        <button class="link danger" onclick="deleteArticulo(${a.id})">Eliminar</button>
+      </td>
+    </tr>`;
+    const detail = expanded ? `<tr><td colspan="6" class="detail-cell">${articuloDetailForm(a)}</td></tr>` : '';
+    return summary + detail;
+  }).join('');
+  return `
+  <div class="card">
+    <h2>Nuevo artículo</h2>
+    <h3>Datos principales</h3>
+    <div class="form-grid">
+      <div><label>Código</label><input id="af_cod_ketto"></div>
+      <div><label>Descripción</label><input id="af_nombre" placeholder="Ej: Tela Denim Azul"></div>
+      <div><label>Tipo</label><select id="af_tipo_producto" onchange="updateArticuloTipoFields()"><option value="">—</option>${TIPOS_PRODUCTO.map(t=>`<option>${t}</option>`).join('')}</select></div>
+      <div><label>Unidad de medida</label><select id="af_un_medida" disabled><option value="">—</option></select></div>
+      <div><label>Marca</label><input id="af_marca" disabled placeholder="Solo para Prendas"></div>
+      <div><label>Ancho / Medida</label><input id="af_ancho" disabled placeholder="Solo para Tela o Blanquería"></div>
+      <div><label>GSM / GxU</label><input id="af_gsm"></div>
+    </div>
+    <h3>Identificación / Proveedor</h3>
+    <div class="form-grid">
+      <div><label>Proveedor</label><input id="af_proveedor"></div>
+      <div><label>Código proveedor</label><input id="af_cod_proveedor"></div>
+      <div><label>N° PI</label><input id="af_nro_pi"></div>
+    </div>
+    <h3>Cantidades y precios</h3>
+    <div class="form-grid">
+      <div><label>CBM</label><input id="af_cbm" type="number" step="0.01"></div>
+    </div>
+    <h5 style="margin:10px 0 6px; font-size:12px; color:var(--gray); text-transform:uppercase; letter-spacing:.03em;">Valores reales</h5>
+    <div class="form-grid">
+      <div><label>Qty Total Compra</label><input id="af_qty_compra" type="number" step="0.01"></div>
+      <div><label>Qty Total Real</label><input id="af_qty_real" type="number" step="0.01" oninput="updateFobPreview()"></div>
+      <div><label>Unitario Real (USD)</label><input id="af_unitario_real" type="number" step="0.0001" oninput="updateFobPreview()"></div>
+      <div><label>FOB Real (USD) <span class="muted">(= Qty real × Unitario real)</span></label><input id="af_fob_preview" disabled value="0.00"></div>
+    </div>
+    <h5 style="margin:10px 0 6px; font-size:12px; color:var(--gray); text-transform:uppercase; letter-spacing:.03em;">Valores de aduana</h5>
+    <div class="form-grid">
+      <div class="aduana-simple"><label>NCM real</label><input id="af_ncm_real_simple"></div>
+      <div class="aduana-simple"><label>NCM a declarar en BL</label><input id="af_ncm_declarar_simple"></div>
+      <div class="aduana-simple"><label>Qty Total Aduana</label><input id="af_qty_aduana_simple" type="number" step="0.01" oninput="updateFobAduanaPreview()"></div>
+      <div><label>Unitario Aduana (USD)</label><input id="af_unitario_aduana" type="number" step="0.0001" oninput="updateFobAduanaPreview()"></div>
+      <div><label>FOB Aduana (USD) <span class="muted">(calculado)</span></label><input id="af_fob_aduana_preview" disabled value="0.00"></div>
+    </div>
+    <p id="af_aduana_tela_note" class="footer-note" style="display:none">Para Tela, la NCM se declara por categoría (blanco / teñido / hilo color / estampado) y la Qty Total Aduana se calcula sola sumando esas líneas — cargalas después de crear el artículo, desde "Ver ficha".</p>
+    <h3>Composición</h3>
+    <div class="form-grid">
+      <div><label>Composición real</label><input id="af_composicion_real"></div>
+      <div><label>Composición a declarar en etiqueta</label><input id="af_composicion_etiqueta"></div>
+    </div>
+    <div style="margin-top:12px;"><button class="primary" onclick="addArticulo(${cargaId})">+ Agregar artículo</button></div>
+    <p class="footer-note">El FOB real (USD) se calcula solo como Qty real × Unitario real. El costeo final usa la "Qty Total Real" para calcular el costo unitario en USD. La NCM se carga por color/tipo después de crear el artículo, desde "Ver ficha".</p>
+  </div>
+  <div class="card">
+    ${arts.length===0 ? '<div class="empty">Sin artículos cargados.</div>' : `
+    <table><thead><tr><th>Artículo</th><th class="num">CBM</th><th class="num">FOB USD</th><th class="num">Qty real</th><th>Proveedor</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>`}
+  </div>`;
+}
+function updateArticuloTipoFields() {
+  const tipo = document.getElementById('af_tipo_producto')?.value;
+  const marca = document.getElementById('af_marca');
+  const ancho = document.getElementById('af_ancho');
+  const udm = document.getElementById('af_un_medida');
+  if (marca) marca.disabled = !marcaHabilitada(tipo);
+  if (ancho) ancho.disabled = !anchoHabilitado(tipo);
+  if (udm) {
+    const opts = unidadesParaTipo(tipo);
+    udm.innerHTML = '<option value="">—</option>' + opts.map(u=>`<option>${u}</option>`).join('');
+    udm.disabled = opts.length === 0;
+  }
+  const esTela = tipo === 'TELA';
+  document.querySelectorAll('.aduana-simple').forEach(el => { el.style.display = esTela ? 'none' : ''; });
+  const nota = document.getElementById('af_aduana_tela_note');
+  if (nota) nota.style.display = esTela ? 'block' : 'none';
+  updateFobAduanaPreview();
+}
+function updateFobAduanaPreview() {
+  const tipo = document.getElementById('af_tipo_producto')?.value;
+  const unit = Number(document.getElementById('af_unitario_aduana')?.value) || 0;
+  const qty = (tipo === 'TELA') ? 0 : (Number(document.getElementById('af_qty_aduana_simple')?.value) || 0);
+  const preview = document.getElementById('af_fob_aduana_preview');
+  if (preview) preview.value = fmtNum(qty * unit);
+}
+function updateFobPreview() {
+  const qty = Number(document.getElementById('af_qty_real')?.value) || 0;
+  const unit = Number(document.getElementById('af_unitario_real')?.value) || 0;
+  const preview = document.getElementById('af_fob_preview');
+  if (preview) preview.value = fmtNum(qty * unit);
+}
+async function addArticulo(cargaId) {
+  const nombre = document.getElementById('af_nombre').value.trim();
+  if (!nombre) { alert('Ingresá la descripción del artículo'); return; }
+  const val = idPrefix => document.getElementById(idPrefix).value.trim();
+  const num = idPrefix => { const v = Number(document.getElementById(idPrefix).value); return isNaN(v) ? 0 : v; };
+  const numOrNull = idPrefix => { const raw = document.getElementById(idPrefix).value; if (raw === '') return null; const v = Number(raw); return isNaN(v) ? null : v; };
+  const id = nextId('articulos');
+  const tipoSel = document.getElementById('af_tipo_producto').value;
+  const desgloseInicial = (tipoSel === 'TELA') ? [] : [{
+    categoria: '',
+    ncm_real: val('af_ncm_real_simple'),
+    ncm_declarar: val('af_ncm_declarar_simple'),
+    qty_real: num('af_qty_real'),
+    unitario_real: numOrNull('af_unitario_real'),
+    qty_aduana: num('af_qty_aduana_simple'),
+    unitario_aduana: numOrNull('af_unitario_aduana'),
+  }];
+  const row = {
+    id, carga_id: cargaId, nombre,
+    cbm: num('af_cbm'),
+    proveedor: val('af_proveedor'),
+    cod_proveedor: val('af_cod_proveedor'),
+    cod_ketto: val('af_cod_ketto'),
+    marca: val('af_marca'),
+    tipo_producto: tipoSel,
+    ancho: val('af_ancho'),
+    gsm: val('af_gsm'),
+    nro_pi: val('af_nro_pi'),
+    qty_compra: num('af_qty_compra'),
+    qty_real: num('af_qty_real'),
+    un_medida: val('af_un_medida'),
+    unitario_real: numOrNull('af_unitario_real'),
+    unitario_aduana: numOrNull('af_unitario_aduana'),
+    ncm_real: '',
+    ncm_declarar: '',
+    desglose_ncm: desgloseInicial,
+    composicion_real: val('af_composicion_real'),
+    composicion_etiqueta: val('af_composicion_etiqueta'),
+  };
+  DB.articulos.push(row);
+  await sbInsert('articulos', row).catch(e => console.warn('addArticulo:', e));
+  renderAll();
+}
+function updArticulo(id, field, value) {
+  const a = DB.articulos.find(x=>x.id===id);
+  if (!a) return;
+  a[field] = value;
+  sbUpdate('articulos', id, { [field]: value }).catch(e => console.warn('updArticulo:', e));
+  renderAll();
+}
+async function deleteArticulo(id) {
+  if (!confirm('¿Eliminar este artículo?')) return;
+  DB.articulos = DB.articulos.filter(a=>a.id!==id);
+  await sbDelete('articulos', id).catch(e => console.warn('deleteArticulo:', e));
+  renderAll();
+}
+
+/* ---- Sub: Gastos ---- */
+function subGastos(cargaId) {
+  const gastos = gastosDeCarga(cargaId);
+  const catOpts = DB.categorias.map(c=>`<option value="${c.id}">${esc(c.nombre)} (${c.metodo})</option>`).join('');
+  const rows = gastos.map(g => {
+    const cat = categoriaById(g.categoria_id);
+    const tc = gastoTC(g);
+    const usd = gastoUSD(g);
+    const usdCosteo = gastoUSDCosteo(g);
+    const tcDelDia = getTC(g.fecha_pago);
+    return `<tr>
+      <td>${cat?esc(cat.nombre):'<span class="muted">sin categoría</span>'}</td>
+      <td>${fmtDate(g.fecha_fc)}</td>
+      <td>${esc(g.nro_fc)}</td>
+      <td class="num">${fmtARS(g.monto_ars)}</td>
+      <td>${esc(g.observacion||'')}</td>
+      <td><span class="badge ${g.estado==='Pagado'?'paid':'pending'}">${g.estado}</span></td>
+      <td>${g.estado==='Pagado' ? `<input type="date" value="${g.fecha_pago||''}" onchange="setPago(${g.id}, this.value)" style="width:130px">` : `<button onclick="marcarPagado(${g.id})">Marcar pagado</button>`}</td>
+      <td class="num"><input type="text" inputmode="decimal" value="${g.tc_manual!=null ? fmtNumEdit(g.tc_manual) : ''}" placeholder="${tcDelDia!=null ? fmtNum(tcDelDia) : 'sin TC'}" onchange="setTcManual(${g.id}, this.value)" style="width:90px; text-align:right" title="Dejalo vacío para usar el TC BNA del día. Cargá un valor acá solo si este gasto puntual usa un TC distinto (ej. TC de oficialización de un despacho)."></td>
+      <td class="num"><input type="text" inputmode="decimal" value="${g.iva_usd!=null ? fmtNumEdit(g.iva_usd) : ''}" placeholder="—" onchange="setIvaInfo(${g.id}, this.value)" style="width:90px; text-align:right" title="Cuánto de este gasto es IVA, a nivel informativo. Ya está incluido en el Monto ARS — esto NO se resta del costeo."></td>
+      <td class="num"><input type="text" inputmode="decimal" value="${g.iva_adicional_usd!=null ? fmtNumEdit(g.iva_adicional_usd) : ''}" placeholder="—" onchange="setIvaAdicional(${g.id}, this.value)" style="width:90px; text-align:right" title="IVA Adicional del despacho (percepción), sin relación con el producto. Este monto SÍ se resta del costeo."></td>
+      <td class="num">${usd!==null ? fmtUSD(usd) : (g.estado==='Pagado' ? '<span class="muted">sin TC</span>' : '—')}${(g.iva_adicional_usd) ? `<div class="muted" style="font-size:11px;">costeable: ${fmtUSD(usdCosteo)}</div>` : ''}</td>
+      <td><button class="link danger" onclick="deleteGasto(${g.id})">Eliminar</button></td>
+    </tr>`;
+  }).join('');
+  return `
+  <div class="card">
+    <h2>Cargar nuevo gasto</h2>
+    <div class="form-grid">
+      <div><label>Categoría</label><select id="gf_cat">${catOpts}</select></div>
+      <div><label>Fecha FC</label><input id="gf_fecha_fc" type="date"></div>
+      <div><label>N° FC</label><input id="gf_nro_fc" placeholder="FC-000123"></div>
+      <div><label>Monto (ARS)</label><input id="gf_monto" type="number" step="0.01"></div>
+      <div><label>Observación</label><input id="gf_obs" placeholder="Opcional"></div>
+      <div><button class="primary" onclick="addGasto(${cargaId})">+ Agregar gasto</button></div>
+    </div>
+    <p class="footer-note">El gasto se carga como "Pendiente". Cuando lo pagues, marcalo como pagado y poné la fecha de pago — ahí se convierte a USD con el TC BNA de esa fecha. Si un gasto puntual usa un TC distinto al del día (por ejemplo el TC de oficialización de un despacho), cargalo en la columna "TC propio" de la tabla y ese pisa al TC BNA general.</p>
+  </div>
+  <div class="card">
+    ${gastos.length===0 ? '<div class="empty">Sin gastos cargados.</div>' : `
+    <div style="overflow-x:auto;">
+    <table><thead><tr>
+      <th>Categoría</th><th>Fecha FC</th><th>N° FC</th><th class="num">Monto ARS</th><th>Obs.</th>
+      <th>Estado</th><th>Fecha de pago</th><th class="num">TC propio <span class="muted">(opcional)</span></th>
+      <th class="num">IVA (info, USD)</th><th class="num">IVA Adic. (resta, USD)</th>
+      <th class="num">Monto USD</th><th></th>
+    </tr></thead><tbody>${rows}</tbody></table>
+    </div>`}
+  </div>`;
+}
+function setTcManual(id, value) {
+  const g = DB.gastos.find(x=>x.id===id);
+  if (!g) return;
+  g.tc_manual = parseNumOrNull(value);
+  sbUpdate('gastos', id, { tc_manual: g.tc_manual }).catch(e => console.warn('setTcManual:', e));
+  renderAll();
+}
+function setIvaInfo(id, value) {
+  const g = DB.gastos.find(x=>x.id===id);
+  if (!g) return;
+  g.iva_usd = parseNumOrNull(value);
+  sbUpdate('gastos', id, { iva_usd: g.iva_usd }).catch(e => console.warn('setIvaInfo:', e));
+  renderAll();
+}
+function setIvaAdicional(id, value) {
+  const g = DB.gastos.find(x=>x.id===id);
+  if (!g) return;
+  g.iva_adicional_usd = parseNumOrNull(value);
+  sbUpdate('gastos', id, { iva_adicional_usd: g.iva_adicional_usd }).catch(e => console.warn('setIvaAdicional:', e));
+  renderAll();
+}
+async function addGasto(cargaId) {
+  const monto = Number(document.getElementById('gf_monto').value);
+  if (!monto) { alert('Ingresá el monto en ARS'); return; }
+  const id = nextId('gastos');
+  const row = {
+    id, carga_id: cargaId,
+    categoria_id: Number(document.getElementById('gf_cat').value),
+    fecha_fc: document.getElementById('gf_fecha_fc').value || null,
+    nro_fc: document.getElementById('gf_nro_fc').value.trim(),
+    monto_ars: monto,
+    observacion: document.getElementById('gf_obs').value.trim(),
+    estado: 'Pendiente',
+    fecha_pago: null,
+    tc_manual: null,
+    iva_usd: null,
+    iva_adicional_usd: null,
+  };
+  DB.gastos.push(row);
+  await sbInsert('gastos', row).catch(e => console.warn('addGasto:', e));
+  renderAll();
+}
+function marcarPagado(id) {
+  const g = DB.gastos.find(x=>x.id===id);
+  g.estado = 'Pagado';
+  g.fecha_pago = new Date().toISOString().slice(0,10);
+  sbUpdate('gastos', id, { estado: 'Pagado', fecha_pago: g.fecha_pago }).catch(e => console.warn('marcarPagado:', e));
+  renderAll();
+}
+function setPago(id, fecha) {
+  const g = DB.gastos.find(x=>x.id===id);
+  g.fecha_pago = fecha || null;
+  sbUpdate('gastos', id, { fecha_pago: g.fecha_pago }).catch(e => console.warn('setPago:', e));
+  renderAll();
+}
+async function deleteGasto(id) {
+  if (!confirm('¿Eliminar este gasto?')) return;
+  DB.gastos = DB.gastos.filter(g=>g.id!==id);
+  await sbDelete('gastos', id).catch(e => console.warn('deleteGasto:', e));
+  renderAll();
+}
+
+/* ---- Sub: Costeo ---- */
+function subCosteo(cargaId) {
+  const r = costeoDeCarga(cargaId);
+  const rows = r.detalle.map(d => `<tr>
+    <td>${esc(d.nombre)}</td>
+    <td class="num">${fmtUSD(d.fob_usd)}</td>
+    <td class="num">${fmtUSD(d.fobUnitario)}</td>
+    <td class="num">${fmtPct(d.pctCBM)}</td>
+    <td class="num">${fmtPct(d.pctFOB)}</td>
+    <td class="num">${fmtUSD(d.asignado)}</td>
+    <td class="num">${fmtUSD(d.costoBase)}</td>
+    <td class="num">${fmtUSD(d.hundidosMonto)}</td>
+    <td class="num"><b>${fmtUSD(d.costoTotal)}</b></td>
+    <td class="num">${fmtNum(d.cantidadUsada)}</td>
+    <td class="num"><b>${fmtUSD(d.costoUnitario)}</b></td>
+  </tr>`).join('');
+  const warnings = [];
+  if (r.pendientesCount>0) warnings.push(`${r.pendientesCount} gasto(s) pendiente(s) de pago por ${fmtARS(r.pendientesARS)} ARS — no incluidos todavía en el costeo.`);
+  if (r.sinCategoria>0) warnings.push(`${r.sinCategoria} gasto(s) sin categoría válida — no se pudieron prorratear.`);
+  if (r.sinTC>0) warnings.push(`${r.sinTC} gasto(s) pagado(s) sin TC BNA cargado para su fecha de pago — no se convirtieron a USD. Cargalos en la pestaña "Tipo de Cambio".`);
+
+  return `
+  <div class="card">
+    <h2>Costeo — bolsas de gastos prorrateados</h2>
+    <div class="grid2">
+      <div class="muted">Gastos generales (CBM): <b>${fmtUSD(r.bucketCBM)}</b> (Σ CBM artículos: ${fmtNum(r.sumCBM)})</div>
+      <div class="muted">Nacionalización + Ajuste de valor (FOB Aduana): <b>${fmtUSD(r.bucketFOB)}</b> (Σ FOB Aduana artículos: ${fmtUSD(r.sumFOB)})</div>
+      <div class="muted" style="grid-column: 1 / -1;">Gastos hundidos: <b>${r.pctHundidos}%</b> sobre FOB real + gastos asignados (estructura, alquiler, empleados, gastos bancarios)</div>
+    </div>
+    ${warnings.map(w=>`<div class="warn">⚠ ${w}</div>`).join('')}
+  </div>
+  <div class="card">
+    <h2>Costo por artículo</h2>
+    ${r.detalle.length===0 ? '<div class="empty">Cargá artículos primero.</div>' : `
+    <div style="overflow-x:auto;">
+    <table><thead><tr>
+      <th>Artículo</th><th class="num">FOB Real USD</th><th class="num">FOB Unitario USD</th>
+      <th class="num">% CBM</th><th class="num">% FOB Aduana</th><th class="num">Gastos asignados</th>
+      <th class="num">Costo base USD</th><th class="num">Gastos hundidos (${r.pctHundidos}%)</th><th class="num">Costo total USD</th>
+      <th class="num">Qty real</th><th class="num">Costo unitario USD</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+    </div>`}
+    <p class="footer-note">Costo total = FOB real + gastos generales (CBM) + nacionalización y ajuste de valor (FOB Aduana) + ${r.pctHundidos}% de gastos hundidos. El costo unitario usa la Qty Total Real de cada artículo.</p>
+  </div>`;
+}
+
+/* ============================================================
+   VISTA: CATEGORIAS
+   ============================================================ */
+function viewCategorias() {
+  const rows = DB.categorias.map(c => `<tr>
+    <td>${esc(c.nombre)}</td>
+    <td><span class="badge ${c.metodo==='CBM'?'b2':'b3'}">${c.metodo}</span></td>
+    <td><button class="link danger" onclick="deleteCategoria(${c.id})">Eliminar</button></td>
+  </tr>`).join('');
+  return `
+  <div class="card">
+    <h2>Gastos hundidos</h2>
+    <div class="form-grid">
+      <div><label>Porcentaje sobre el costo (FOB real + gastos asignados)</label>
+        <input type="text" inputmode="decimal" value="${fmtNumEdit(DB.gastosHundidosPct)}" onchange="setGastosHundidosPct(this.value)" style="max-width:120px">
+      </div>
+    </div>
+    <p class="footer-note">Se suma automáticamente al costo final de cada artículo para cubrir estructura, alquiler, empleados y gastos bancarios. Se aplica sobre el costo antes de gastos hundidos (FOB real + gastos generales + nacionalización + ajuste de valor).</p>
+  </div>
+  <div class="card">
+    <h2>Nueva categoría de gasto</h2>
+    <div class="form-grid">
+      <div><label>Nombre</label><input id="cf_nombre" placeholder="Ej: Flete Marítimo"></div>
+      <div><label>Método de prorrateo</label><select id="cf_metodo"><option>CBM</option><option>FOB</option></select></div>
+      <div><button class="primary" onclick="addCategoria()">+ Agregar</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Categorías (${DB.categorias.length})</h2>
+    <p class="footer-note">Cada categoría define cómo se reparte ese gasto entre los artículos de una carga: por % de CBM (volumen) o por % de FOB (valor declarado en aduana, no el FOB real).</p>
+    ${DB.categorias.length===0 ? '<div class="empty">Sin categorías.</div>' : `
+    <table><thead><tr><th>Categoría</th><th>Método</th><th></th></tr></thead><tbody>${rows}</tbody></table>`}
+  </div>`;
+}
+function setGastosHundidosPct(value) {
+  const n = parseNumOrNull(value);
+  DB.gastosHundidosPct = n === null ? 0 : n;
+  sbUpsertConfig({ gastos_hundidos_pct: DB.gastosHundidosPct }).catch(e => console.warn('setGastosHundidosPct:', e));
+  renderAll();
+}
+async function addCategoria() {
+  const nombre = document.getElementById('cf_nombre').value.trim();
+  if (!nombre) { alert('Ingresá un nombre'); return; }
+  const id = nextId('categorias');
+  const row = { id, nombre, metodo: document.getElementById('cf_metodo').value };
+  DB.categorias.push(row);
+  await sbInsert('categorias', row).catch(e => console.warn('addCategoria:', e));
+  renderAll();
+}
+async function deleteCategoria(id) {
+  if (!confirm('¿Eliminar esta categoría? Los gastos que la usan quedarán sin categoría.')) return;
+  DB.categorias = DB.categorias.filter(c=>c.id!==id);
+  await sbDelete('categorias', id).catch(e => console.warn('deleteCategoria:', e));
+  renderAll();
+}
+
+/* ============================================================
+   VISTA: TIPO DE CAMBIO BNA
+   ============================================================ */
+function viewTC() {
+  const sorted = [...DB.tc_bna].sort((a,b)=> a.fecha < b.fecha ? 1 : -1);
+  const rows = sorted.map(t => `<tr>
+    <td>${fmtDate(t.fecha)}</td>
+    <td class="num">${fmtARS(t.valor)}</td>
+    <td><button class="link danger" onclick="deleteTC(${t.id})">Eliminar</button></td>
+  </tr>`).join('');
+  const today = new Date().toISOString().slice(0,10);
+  return `
+  <div class="card">
+    <h2>Cargar tipo de cambio BNA (venta)</h2>
+    <p class="footer-note">Pegá acá a diario el valor que sacás de la planilla de Dolarbot (no se pudo vincular en vivo un archivo de tu red desde este entorno).</p>
+    <div class="form-grid">
+      <div><label>Fecha</label><input id="tf_fecha" type="date" value="${today}"></div>
+      <div><label>TC BNA venta</label><input id="tf_valor" type="number" step="0.01"></div>
+      <div><button class="primary" onclick="addTC()">+ Agregar / actualizar</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Historial de TC BNA (${DB.tc_bna.length})</h2>
+    ${sorted.length===0 ? '<div class="empty">Sin valores cargados.</div>' : `
+    <table><thead><tr><th>Fecha</th><th class="num">TC BNA venta</th><th></th></tr></thead><tbody>${rows}</tbody></table>`}
+  </div>`;
+}
+async function addTC() {
+  const fecha = document.getElementById('tf_fecha').value;
+  const valor = Number(document.getElementById('tf_valor').value);
+  if (!fecha || !valor) { alert('Completá fecha y valor'); return; }
+  const existing = DB.tc_bna.find(t=>t.fecha===fecha);
+  if (existing) {
+    existing.valor = valor;
+    await sbUpdate('tc_bna', existing.id, { valor }).catch(e => console.warn('addTC update:', e));
+  } else {
+    const id = nextId('tc_bna');
+    DB.tc_bna.push({ id, fecha, valor });
+    await sbInsert('tc_bna', { id, fecha, valor }).catch(e => console.warn('addTC insert:', e));
+  }
+  renderAll();
+}
+async function deleteTC(id) {
+  if (!confirm('¿Eliminar este valor de TC?')) return;
+  DB.tc_bna = DB.tc_bna.filter(t=>t.id!==id);
+  await sbDelete('tc_bna', id).catch(e => console.warn('deleteTC:', e));
+  renderAll();
+}
+
+/* ============================================================
+   EXPORT / IMPORT
+   ============================================================ */
+function exportData() {
+  const blob = new Blob([JSON.stringify(DB, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'costeo_cargas_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data.cargas || !data.nextId) throw new Error('Formato inválido');
+      if (!confirm('Esto reemplaza todos los datos actuales por los del archivo importado. ¿Continuar?')) return;
+      DB = migrate(data);
+      save();
+      goTab('cargas');
+    } catch(e) {
+      alert('No se pudo leer el archivo: ' + e.message);
+    }
+  };
+  reader.readAsText(file);
+  evt.target.value = '';
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+loadFromSupabase();
+</script>
+</body>
+</html>
