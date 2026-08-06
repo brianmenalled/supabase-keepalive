@@ -1,0 +1,2291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estado Patrimonial Personal</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f2;color:#1a1a1a;font-size:14px}
+.app{max-width:1040px;margin:0 auto;padding:1.75rem 1.5rem 5rem}
+h1{font-size:21px;font-weight:700}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.75rem;gap:12px;flex-wrap:wrap}
+.topbar-left p{font-size:13px;color:#888;margin-top:3px}
+.topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+select,input[type=text],input[type=number],input[type=date]{padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;background:#fff;color:#1a1a1a;outline:none;transition:border .15s}
+select:focus,input:focus{border-color:#777}
+.badge-borrador{display:inline-flex;align-items:center;gap:5px;background:#fff8e0;border:1px solid #f0c040;color:#8a6000;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px}
+.badge-def{display:inline-flex;align-items:center;gap:5px;background:#e6f5ee;border:1px solid #1D9E75;color:#0a6040;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px}
+.tabs{display:flex;border-bottom:1px solid #e0e0e0;margin-bottom:1.75rem;overflow-x:auto}
+.tab{font-size:13px;padding:9px 14px;cursor:pointer;border:none;background:none;color:#888;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:color .15s}
+.tab.active{color:#1a1a1a;font-weight:700;border-bottom-color:#1a1a1a}
+.tab:hover:not(.active){color:#333}
+.section{display:none}.section.active{display:block}
+/* Metrics */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.25rem}
+.mc{background:#fff;border:1px solid #e8e8e8;border-radius:10px;padding:.875rem}
+.mc .lbl{font-size:11px;color:#999;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.mc .val{font-size:18px;font-weight:700;color:#1a1a1a}
+.mc .sub{font-size:11px;color:#999;margin-top:3px}
+.summary-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.5rem}
+.sp{font-size:12px;padding:5px 11px;border-radius:20px;border:1px solid #e0e0e0;color:#555;background:#fff;display:flex;align-items:center;gap:5px}
+.sp strong{color:#1a1a1a}
+/* Category groups */
+.cat-group{margin-bottom:2rem}
+.cat-group-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;padding-bottom:8px;border-bottom:1px solid #e8e8e8}
+.cat-group-title{font-size:13px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;gap:7px}
+.cat-group-total{font-size:14px;font-weight:700;color:#1a1a1a}
+/* Subcategory cards */
+.sub-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.sub-card{background:#fff;border:1px solid #e8e8e8;border-radius:12px;overflow:hidden;transition:border-color .15s}
+.sub-card:hover{border-color:#ccc}
+.sub-card-head{display:flex;align-items:center;gap:10px;padding:11px 14px 8px}
+.sub-card-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px}
+.sub-card-info{flex:1;min-width:0}
+.sub-card-name{font-size:13px;font-weight:600;color:#1a1a1a;display:flex;align-items:center;gap:6px}
+.sub-card-meta{font-size:11px;color:#999;margin-top:2px}
+.sub-card-amt{text-align:right;flex-shrink:0}
+.sub-card-amt .val{font-size:13px;font-weight:700;color:#1a1a1a}
+.sub-card-amt .pct{font-size:11px;color:#bbb;margin-top:1px}
+.bar-track{height:3px;background:#f0f0f0;margin:0 14px 0;overflow:hidden}
+.bar-fill{height:100%;transition:width .6s}
+/* Movement rows */
+.mov-list{padding:3px 0}
+.mov-hist-row{display:flex;align-items:center;gap:8px;padding:6px 14px;border-bottom:1px solid #f5f5f5;transition:background .1s}
+.mov-hist-row:last-child{border-bottom:none}
+.mov-hist-row:hover{background:#fafafa}
+.mov-icon-wrap{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px}
+.mov-compra-icon{background:#e6f5ee;color:#0a6040}
+.mov-venta-icon{background:#fdf0ef;color:#c0392b}
+.mov-aporte-icon{background:#e6eefb;color:#1a4fa0}
+.mov-dividendo-icon{background:#f0edff;color:#5a40aa}
+.mov-info-wrap{flex:1;min-width:0}
+.mov-desc-txt{font-size:12px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mov-meta-txt{font-size:10px;color:#bbb;margin-top:1px}
+.mov-amt-wrap{text-align:right;flex-shrink:0}
+.mov-amt-val{font-size:12px;font-weight:600;color:#1a1a1a}
+.mov-gain-val{font-size:10px;margin-top:1px}
+.gain-pos{color:#0a6040;font-weight:600}
+.gain-neg{color:#c0392b;font-weight:600}
+.mov-actions{display:flex;gap:4px;flex-shrink:0}
+.mov-act-btn{background:none;border:1px solid #eee;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:#bbb;font-family:inherit;display:inline-flex;align-items:center;gap:3px;transition:all .15s}
+.mov-act-btn.edit:hover{color:#378ADD;border-color:#378ADD;background:#f0f8ff}
+.mov-act-btn.del:hover{color:#c0392b;border-color:#f0c0c0;background:#fdf0ef}
+.mov-locked{font-size:11px;color:#aaa;display:inline-flex;align-items:center;gap:3px;padding:3px 8px;cursor:default}
+/* Sub card footer */
+.sub-card-footer{border-top:1px solid #f5f5f5;display:flex;align-items:center;justify-content:space-between}
+.add-mov-btn{display:flex;align-items:center;gap:5px;padding:7px 14px;cursor:pointer;color:#bbb;font-size:12px;border:none;background:none;font-family:inherit;transition:all .15s;flex:1}
+.add-mov-btn:hover{color:#1a1a1a;background:#fafafa}
+.edit-sub-btn{display:flex;align-items:center;gap:4px;padding:7px 12px;cursor:pointer;color:#ccc;font-size:11px;border:none;background:none;font-family:inherit;border-left:1px solid #f5f5f5;transition:all .15s}
+.edit-sub-btn:hover{color:#378ADD;background:#f0f8ff}
+/* Pills */
+.pills{display:flex;gap:4px;padding:2px 14px 8px;flex-wrap:wrap}
+.pill{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;white-space:nowrap}
+.pill-of{background:#e6f5ee;color:#0a6040}
+.pill-ba{background:#fff4e0;color:#8a5a00}
+.pill-pais{background:#e6eefb;color:#1a4fa0}
+.pill-cpp{background:#f5f0ff;color:#5a40aa}
+.pill-nr{background:#fff0e0;color:#a05000}
+.pill-ganr{background:#e6f5ee;color:#0a6040}
+.ticker-badge{font-size:11px;background:#f0f8ff;border:1px solid #c0d8f0;color:#1a4fa0;padding:2px 8px;border-radius:8px;font-weight:600;cursor:pointer;transition:background .15s}
+.ticker-badge:hover{background:#ddeefa}
+/* Modals */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:200;align-items:flex-start;justify-content:center;padding:30px 10px;overflow-y:auto}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:1.75rem;width:min(500px,96vw);margin-bottom:30px;box-shadow:0 10px 50px rgba(0,0,0,.18)}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:1.2rem;color:#1a1a1a;display:flex;align-items:center;gap:8px}
+.msub{font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin:1rem 0 .65rem;padding-top:.85rem;border-top:1px solid #f0f0f0;display:flex;align-items:center;gap:5px}
+.fr{margin-bottom:10px}
+.fr label{display:block;font-size:12px;color:#666;margin-bottom:4px;font-weight:500}
+.fr input,.fr select{width:100%}
+.fr-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.fr-row .fr{margin-bottom:0}
+.calc-box{background:#f6f6f4;border-radius:8px;padding:10px 13px;font-size:12px;margin-bottom:10px;line-height:1.9;color:#555}
+.calc-box strong{color:#1a1a1a}
+.calc-box .cg{color:#0a6040;font-weight:700}
+.calc-box .cl{color:#c0392b;font-weight:700}
+.toggle-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.tog{padding:9px;border:1.5px solid #e0e0e0;border-radius:8px;background:none;font-size:13px;cursor:pointer;font-family:inherit;color:#999;transition:all .15s;text-align:center;font-weight:500;display:flex;align-items:center;justify-content:center;gap:5px}
+.tog.sel-of{background:#e6f5ee;border-color:#1D9E75;color:#0a6040;font-weight:700}
+.tog.sel-ba{background:#fff4e0;border-color:#e0a020;color:#8a5a00;font-weight:700}
+/* Wizard steps */
+.step{display:none}.step.active{display:block}
+.step-indicator{display:flex;align-items:center;gap:8px;margin-bottom:1.25rem}
+.step-dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;transition:all .2s}
+.step-dot.done{background:#1D9E75;color:#fff}
+.step-dot.active{background:#1a1a1a;color:#fff}
+.step-dot.pending{background:#e8e8e8;color:#aaa}
+.step-line{height:2px;flex:1;background:#e8e8e8;border-radius:1px}
+.step-line.done{background:#1D9E75}
+.cat-option{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid #e8e8e8;border-radius:10px;cursor:pointer;transition:all .15s;margin-bottom:8px}
+.cat-option:hover{border-color:#ccc;background:#fafafa}
+.cat-option.selected{border-color:#1a1a1a;background:#f9f9f9}
+.cat-option-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.cat-option-label{font-size:13px;font-weight:600;color:#1a1a1a}
+.cat-option-sub{font-size:11px;color:#999;margin-top:2px}
+.subcat-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.subcat-option{display:flex;align-items:center;gap:10px;padding:10px 13px;border:1.5px solid #e8e8e8;border-radius:9px;cursor:pointer;transition:all .15s;font-size:13px;font-weight:500;color:#333}
+.subcat-option:hover{border-color:#ccc;background:#fafafa}
+.subcat-option.selected{border-color:#1a1a1a;background:#f9f9f9;font-weight:700}
+.subcat-option .sc-meta{font-size:11px;color:#aaa;margin-left:auto}
+.new-subcat-row{display:flex;gap:8px;align-items:center;margin-top:4px}
+.new-subcat-row input{flex:1}
+.btn-add-subcat{background:#1a1a1a;border:none;border-radius:8px;padding:7px 13px;font-size:12px;cursor:pointer;color:#fff;font-family:inherit;font-weight:600;white-space:nowrap}
+.btn-add-subcat:hover{background:#333}
+/* Buttons */
+.mactions{display:flex;gap:8px;margin-top:1.25rem;justify-content:flex-end;align-items:center}
+.btn-del{background:none;border:1px solid #f0c0c0;border-radius:8px;padding:7px 13px;font-size:12px;cursor:pointer;color:#c0392b;font-family:inherit;margin-right:auto;display:inline-flex;align-items:center;gap:5px}
+.btn-del:hover{background:#fdf0ef}
+.btn-can{background:none;border:1px solid #e0e0e0;border-radius:8px;padding:7px 13px;font-size:12px;cursor:pointer;color:#888;font-family:inherit}
+.btn-can:hover{background:#f5f5f5}
+.btn-sav{background:#1a1a1a;border:none;border-radius:8px;padding:7px 15px;font-size:12px;cursor:pointer;color:#fff;font-family:inherit;font-weight:700}
+.btn-sav:hover{background:#333}
+.btn-back{background:none;border:1px solid #e0e0e0;border-radius:8px;padding:7px 13px;font-size:12px;cursor:pointer;color:#555;font-family:inherit;display:inline-flex;align-items:center;gap:5px}
+.btn-back:hover{background:#f5f5f5}
+.btn-next{background:#1a1a1a;border:none;border-radius:8px;padding:7px 15px;font-size:12px;cursor:pointer;color:#fff;font-family:inherit;font-weight:700;display:inline-flex;align-items:center;gap:5px}
+.btn-next:hover{background:#333}
+.btn-green{background:#1D9E75;border:none;border-radius:8px;padding:8px 15px;font-size:13px;cursor:pointer;color:#fff;font-family:inherit;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.btn-green:hover{background:#178a63}
+.btn-amber{background:#e0a020;border:none;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;color:#fff;font-family:inherit;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.btn-amber:hover{background:#c08a10}
+.btn-new-activo{background:#1a1a1a;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;color:#fff;font-family:inherit;font-weight:700;display:inline-flex;align-items:center;gap:7px}
+.btn-new-activo:hover{background:#333}
+/* Historial */
+.hist-list{display:flex;flex-direction:column;gap:11px}
+.hist-card{background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:1rem 1.25rem;display:flex;align-items:center;gap:14px}
+.hist-card:hover{border-color:#ccc}
+.hist-icon{width:38px;height:38px;border-radius:10px;background:#e6f5ee;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;color:#1D9E75}
+.hist-info{flex:1;min-width:0}
+.hist-fecha{font-size:14px;font-weight:700}
+.hist-sub{font-size:12px;color:#888;margin-top:2px}
+.hist-amt{font-size:16px;font-weight:700;margin-right:8px}
+.hist-actions{display:flex;gap:6px}
+.icon-btn{background:none;border:1px solid #e8e8e8;border-radius:8px;padding:6px 9px;cursor:pointer;color:#888;font-size:14px}
+.icon-btn:hover{background:#f5f5f5;color:#333}
+.empty-state{text-align:center;padding:3rem 1rem;color:#bbb}
+.empty-state i{font-size:36px;margin-bottom:.75rem;display:block}
+/* Comparar */
+.comp-selectors{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem}
+.comp-label{font-size:12px;color:#666;font-weight:600;margin-bottom:5px}
+.comp-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1.5rem}
+.comp-mc{border-radius:10px;padding:.875rem;border:1px solid}
+.comp-mc .lbl{font-size:11px;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.comp-mc .val{font-size:18px;font-weight:700}
+.comp-mc .sub{font-size:11px;margin-top:3px}
+.comp-table{width:100%;border-collapse:collapse;font-size:12px}
+.comp-table th{text-align:left;padding:8px 10px;background:#f6f6f4;color:#888;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e8e8e8}
+.comp-table td{padding:7px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+.comp-table .grp-row td{background:#f9f9f7;font-weight:700;font-size:11px;color:#888;text-transform:uppercase}
+.comp-table .tot-row td{font-weight:700;background:#f6f6f4;border-top:1px solid #ddd}
+.delta-pos{color:#0a6040;font-weight:700}
+.delta-neg{color:#c0392b;font-weight:700}
+.delta-neu{color:#aaa}
+.delta-bar-wrap{width:60px;height:5px;background:#f0f0f0;border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle}
+.delta-bar{height:100%;border-radius:3px}
+/* Compartir */
+.share-card{background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem}
+.share-card h3{font-size:14px;font-weight:700;margin-bottom:6px}
+.share-card p{font-size:12px;color:#888;line-height:1.65}
+.share-btns{display:flex;gap:8px;margin-top:.9rem;flex-wrap:wrap}
+.sbtn{display:flex;align-items:center;gap:5px;font-size:12px;padding:7px 13px;border:1px solid #e0e0e0;border-radius:8px;background:#fff;cursor:pointer;color:#1a1a1a;font-family:inherit;font-weight:500}
+.sbtn:hover{border-color:#aaa}
+.legend-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:1rem;font-size:12px;color:#666}
+.leg-item{display:flex;align-items:center;gap:5px}
+.leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.chart-wrap{position:relative;width:100%;height:240px;margin-bottom:1.75rem}
+.section-lbl{font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:1rem}
+.ptable{width:100%;border-collapse:collapse;font-size:12px}
+.ptable th{text-align:left;padding:7px 9px;background:#f6f6f4;color:#888;font-weight:600;border-bottom:1px solid #e8e8e8;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.ptable td{padding:6px 9px;border-bottom:1px solid #f0f0f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ptable .grp-row td{background:#f6f6f4;font-weight:700;font-size:11px;color:#888;text-transform:uppercase}
+.ptable .tot-row td{font-weight:700;background:#f6f6f4;border-top:1px solid #ddd}
+/* Footer */
+.footer-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e8e8e8;padding:.875rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;z-index:50}
+.footer-info{font-size:12px;color:#888;display:flex;align-items:center;gap:10px}
+.footer-info strong{color:#1a1a1a}
+.footer-btns{display:flex;gap:8px;flex-wrap:wrap}
+/* Close modal */
+.close-modal{background:#fff;border-radius:14px;padding:2rem;width:min(440px,96vw);margin-bottom:30px;box-shadow:0 10px 50px rgba(0,0,0,.18)}
+.close-modal h3{font-size:17px;font-weight:700;margin-bottom:.5rem;display:flex;align-items:center;gap:8px}
+.close-modal p{font-size:13px;color:#666;line-height:1.6;margin-bottom:1.25rem}
+.info-box{background:#f6f6f4;border-radius:10px;padding:1rem;margin-bottom:1.25rem;font-size:13px;color:#555;line-height:1.9}
+.info-box strong{color:#1a1a1a}
+.close-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.mov-traspaso-icon{background:#f0f8ff;color:#378ADD}
+.mov-distrib-icon{background:#fff0f8;color:#a0207a}
+.rend-hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:1.5rem}
+.rend-mc{border-radius:12px;padding:1rem 1.1rem;border:1px solid}
+.rend-mc .lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.rend-mc .val{font-size:22px;font-weight:700}
+.rend-mc .sub{font-size:12px;margin-top:3px}
+.rend-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:1.5rem}
+.rend-table th{text-align:left;padding:8px 10px;background:#f6f6f4;color:#888;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e8e8e8}
+.rend-table td{padding:8px 10px;border-bottom:1px solid #f0f0f0}
+.rend-table .tot-row td{font-weight:700;background:#f6f6f4;border-top:1px solid #ddd}
+.socios-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem}
+.socio-mc{background:#fff;border:1px solid #e8e8e8;border-radius:10px;padding:.875rem;text-align:center}
+.socio-mc .name{font-size:12px;font-weight:700;color:#555;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.socio-mc .amt{font-size:18px;font-weight:700;color:#1a1a1a}
+.socio-mc .sub{font-size:11px;color:#aaa;margin-top:2px}
+.distrib-list{background:#fff;border:1px solid #e8e8e8;border-radius:10px;overflow:hidden;margin-bottom:1.5rem}
+.distrib-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #f5f5f5;font-size:12px}
+.distrib-row:last-child{border-bottom:none}
+.pasivo-section{margin:0 14px 8px;padding:8px 10px;background:#fff5f5;border-radius:8px;border:1px solid #fdd}
+.pasivo-header{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;color:#c0392b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.pasivo-detail{font-size:11px;color:#888;line-height:1.8}
+.pasivo-detail strong{color:#c0392b}
+.pill-deuda{background:#fdf0ef;color:#c0392b}
+.patrimonio-neto-pos{color:#0a6040;font-weight:700}
+.patrimonio-neto-neg{color:#c0392b;font-weight:700}
+.notes-collapse-btn{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;background:#f9f8f5;border:none;cursor:pointer;font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.05em;font-family:inherit;width:100%;transition:background .15s}
+.notes-collapse-btn:hover{background:#f0ede5;color:#555}
+.notes-collapse-btn .notes-arrow{transition:transform .2s;font-size:12px}
+.notes-collapse-btn.open .notes-arrow{transform:rotate(180deg)}
+.notes-wrap{overflow:hidden;transition:max-height .25s ease}
+.sc-collapse-btn{display:flex;align-items:center;gap:5px;width:100%;padding:7px 14px;background:none;border:none;cursor:pointer;font-size:11px;color:#bbb;font-family:inherit;transition:color .15s;border-top:1px solid #f5f5f5;justify-content:space-between}
+.sc-collapse-btn:hover{color:#555;background:#fafafa}
+.sc-collapse-btn .sc-collapse-label{display:flex;align-items:center;gap:5px}
+.sc-collapse-btn .sc-collapse-arrow{transition:transform .2s;font-size:13px}
+.sc-collapse-btn.open .sc-collapse-arrow{transform:rotate(180deg)}
+.sc-mov-wrap{overflow:hidden;transition:max-height .25s ease}
+.expand-all-row{display:flex;align-items:center;gap:10px;margin-bottom:1rem}
+.expand-all-btn{background:none;border:1px solid #e0e0e0;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:#555;font-family:inherit;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.expand-all-btn:hover{border-color:#aaa;color:#1a1a1a}
+
+/* ── MOBILE RESPONSIVE ─────────────────────────────────── */
+@media (max-width: 680px) {
+  .app { padding: 1rem 0.75rem 7rem; }
+  h1 { font-size: 16px; }
+  .topbar { margin-bottom: 1rem; gap: 8px; }
+  .topbar-left p { font-size: 11px; }
+  .topbar-right { gap: 6px; }
+  .cur-row label { display: none; }
+  /* Tabs — scroll horizontal, no icons */
+  .tabs { margin-bottom: 1.25rem; gap: 0; }
+  .tab { font-size: 12px; padding: 8px 8px; gap: 2px; }
+  .tab i { display: none; }
+  /* Metrics 2 cols */
+  .metrics { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
+  .mc .val { font-size: 14px; }
+  .mc .lbl { font-size: 10px; }
+  .mc .sub { font-size: 10px; }
+  /* Summary pills */
+  .summary-pills { gap: 6px; margin-bottom: 1rem; }
+  .sp { font-size: 11px; padding: 4px 8px; }
+  /* Charts */
+  .chart-wrap { height: 190px; margin-bottom: 1.25rem; }
+  .legend-row { font-size: 11px; gap: 8px; }
+  /* Category groups */
+  .cat-group-header { margin-bottom: 0.6rem; }
+  .cat-group-title { font-size: 10px; }
+  .cat-group-total { font-size: 13px; }
+  .sub-cards { grid-template-columns: 1fr; gap: 10px; }
+  /* Sub-card */
+  .sub-card-head { padding: 10px 12px 7px; gap: 8px; }
+  .sub-card-icon { width: 26px; height: 26px; font-size: 13px; }
+  .sub-card-name { font-size: 12px; }
+  .sub-card-meta { font-size: 10px; }
+  .sub-card-amt .val { font-size: 12px; }
+  .sub-card-amt .pct { font-size: 10px; }
+  /* Pills */
+  .pills { padding: 1px 12px 6px; gap: 3px; }
+  .pill { font-size: 9px; padding: 2px 6px; }
+  /* Movement rows */
+  .mov-hist-row { padding: 5px 10px; gap: 5px; }
+  .mov-icon-wrap { width: 20px; height: 20px; font-size: 10px; }
+  .mov-desc-txt { font-size: 11px; }
+  .mov-meta-txt { font-size: 9px; }
+  .mov-amt-val { font-size: 11px; }
+  .mov-gain-val { font-size: 9px; }
+  .mov-actions { flex-direction: row; gap: 3px; }
+  .mov-act-btn { font-size: 10px; padding: 3px 6px; }
+  .mov-act-btn i { font-size: 10px; }
+  /* Collapse button */
+  .sc-collapse-btn { font-size: 11px; padding: 6px 12px; }
+  /* Sub-card footer */
+  .sub-card-footer { flex-wrap: nowrap; }
+  .add-mov-btn { font-size: 11px; padding: 7px 10px; }
+  .edit-sub-btn { font-size: 10px; padding: 7px 8px; }
+  /* Footer bar — stack buttons */
+  .footer-bar { padding: 0.6rem 0.75rem; gap: 5px; }
+  .footer-info { font-size: 11px; width: 100%; }
+  .footer-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; width: 100%; }
+  .btn-new-activo, .btn-amber, .btn-green { 
+    font-size: 11px; padding: 8px 4px; 
+    justify-content: center; border-radius: 8px;
+  }
+  /* Modals */
+  .modal-bg { padding: 10px 8px; }
+  .modal { padding: 1.25rem 1rem; border-radius: 12px; }
+  .modal h3 { font-size: 14px; margin-bottom: 1rem; }
+  .fr label { font-size: 11px; }
+  .fr-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .toggle-row { gap: 6px; }
+  .tog { font-size: 12px; padding: 8px 6px; }
+  .close-modal { padding: 1.25rem 1rem; }
+  /* Comparar */
+  .comp-selectors { grid-template-columns: 1fr; gap: 8px; }
+  .comp-summary { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .comp-mc .val { font-size: 15px; }
+  .comp-table { font-size: 11px; }
+  .comp-table th, .comp-table td { padding: 6px 6px; }
+  /* Rendimiento */
+  .rend-hero { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .rend-mc .val { font-size: 15px; }
+  .socios-row { grid-template-columns: 1fr; gap: 8px; }
+  .rend-table { font-size: 11px; }
+  .rend-table th, .rend-table td { padding: 5px 5px; }
+  /* Notas */
+  .expand-all-row { gap: 6px; margin-bottom: 0.75rem; }
+  .expand-all-btn { font-size: 11px; padding: 5px 10px; }
+  /* ptable */
+  .ptable { font-size: 11px; }
+  .ptable th, .ptable td { padding: 5px 6px; }
+  /* Historial */
+  .hist-card { padding: 0.75rem 1rem; gap: 10px; }
+  .hist-fecha { font-size: 13px; }
+  .hist-sub { font-size: 11px; }
+  .hist-amt { font-size: 14px; }
+}
+
+/* ── LOGIN ───────────────────────────────────────────────── */
+.login-screen{position:fixed;inset:0;background:#f5f5f2;z-index:9999;display:flex;align-items:center;justify-content:center}
+.login-box{background:#fff;border:1px solid #e8e8e8;border-radius:16px;padding:2.5rem 2rem;width:min(380px,92vw);box-shadow:0 10px 40px rgba(0,0,0,.08)}
+.login-box h2{font-size:18px;font-weight:700;margin-bottom:4px;color:#1a1a1a}
+.login-box p{font-size:13px;color:#999;margin-bottom:1.75rem}
+.login-box .fr{margin-bottom:12px}
+.login-box label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px}
+.login-box input{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;outline:none}
+.login-box input:focus{border-color:#1a1a1a}
+.login-btn{width:100%;background:#1a1a1a;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px}
+.login-btn:hover{background:#333}
+.login-error{color:#c0392b;font-size:12px;margin-top:8px;display:none;text-align:center}
+
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h2>Estado Patrimonial</h2>
+    <p>Ingresá tus credenciales para acceder</p>
+    <div class="fr">
+      <label>Usuario</label>
+      <input type="text" id="loginUser" placeholder="Usuario" autocomplete="username"/>
+    </div>
+    <div class="fr">
+      <label>Contraseña</label>
+      <input type="password" id="loginPass" placeholder="Contraseña" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">Ingresar</button>
+    <div class="login-error" id="loginError">Usuario o contraseña incorrectos</div>
+  </div>
+</div>
+
+<div class="app">
+  <div class="topbar">
+    <div class="topbar-left"><h1>Estado patrimonial personal</h1><p id="estadoSub">Cargando…</p></div>
+    <div class="topbar-right">
+      <label style="font-size:13px;color:#888">Moneda:</label>
+      <select id="cur" onchange="setCur(this.value)"><option value="USD" selected>USD</option><option value="ARS">ARS</option><option value="EUR">EUR</option></select>
+      <div id="estadoBadge"></div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('resumen')"><i class="ti ti-layout-dashboard"></i>Resumen</button>
+    <button class="tab" onclick="showTab('detalle')"><i class="ti ti-list"></i>Detalle</button>
+    <button class="tab" onclick="showTab('historial')"><i class="ti ti-clock-history"></i>Historial</button>
+    <button class="tab" onclick="showTab('comparar')"><i class="ti ti-arrows-diff"></i>Comparar</button>
+    <button class="tab" onclick="showTab('rendimiento')"><i class="ti ti-trending-up"></i>Rendimiento</button>
+    <button class="tab" onclick="showTab('compartir')"><i class="ti ti-send"></i>Compartir</button>
+  </div>
+
+  <div id="tab-resumen" class="section active">
+    <div class="metrics" id="metricsGrid"></div>
+    <div id="summaryPills" class="summary-pills"></div>
+    <div class="section-lbl">Composición del patrimonio</div>
+    <div id="chartLegend" class="legend-row"></div>
+    <div class="chart-wrap"><canvas id="donutChart"></canvas></div>
+  </div>
+
+  <div id="tab-detalle" class="section"></div>
+
+  <div id="tab-historial" class="section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+      <div class="section-lbl" style="margin:0">Estados definitivos guardados</div>
+    </div>
+    <div id="histList"></div>
+  </div>
+
+  <div id="tab-rendimiento" class="section">
+    <div id="rendContent"></div>
+  </div>
+
+  <div id="tab-comparar" class="section">
+    <div class="comp-selectors">
+      <div><div class="comp-label"><i class="ti ti-calendar" style="font-size:12px;vertical-align:-1px"></i> Estado base</div><select id="cmpA" onchange="renderComp()" style="width:100%"></select></div>
+      <div><div class="comp-label"><i class="ti ti-calendar" style="font-size:12px;vertical-align:-1px"></i> Estado a comparar</div><select id="cmpB" onchange="renderComp()" style="width:100%"></select></div>
+    </div>
+    <div id="compContent"></div>
+  </div>
+
+  <div id="tab-compartir" class="section">
+    <div class="share-card">
+      <h3><i class="ti ti-file-analytics"></i> Exportar estado patrimonial</h3>
+      <p>Resumen del estado actual para compartir con tus socios. Los datos se guardan solo en este navegador.</p>
+      <div class="share-btns">
+        <button class="sbtn" onclick="copyText()"><i class="ti ti-clipboard"></i> Copiar al portapapeles</button>
+        <button class="sbtn" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir / PDF</button>
+      </div>
+    </div>
+    <div class="section-lbl">Vista previa</div>
+    <div style="overflow-x:auto"><table class="ptable" id="previewTbl"></table></div>
+  </div>
+</div>
+
+<div class="footer-bar">
+  <div class="footer-info" id="footerInfo"></div>
+  <div class="footer-btns">
+    <button class="btn-new-activo" onclick="openWizard()"><i class="ti ti-plus"></i> Nuevo activo</button>
+    <button class="btn-new-activo" style="background:#378ADD" onclick="openTraspaso()"><i class="ti ti-transfer"></i> Traspaso</button>
+    <button class="btn-new-activo" style="background:#a0207a" onclick="openDistrib()"><i class="ti ti-users"></i> Distribuir</button>
+    <button class="btn-amber" onclick="guardarBorrador()"><i class="ti ti-device-floppy"></i> Guardar borrador</button>
+    <button class="btn-green" onclick="abrirCierre()"><i class="ti ti-lock"></i> Cerrar definitivo</button>
+  </div>
+</div>
+
+<!-- ══ WIZARD: NUEVO ACTIVO ══ -->
+<div class="modal-bg" id="wizardBg">
+  <div class="modal">
+    <h3><i class="ti ti-plus-circle" style="color:#378ADD"></i> Nuevo activo</h3>
+    <div class="step-indicator" id="wizardSteps"></div>
+
+    <!-- Paso 1: Categoría -->
+    <div class="step active" id="wizard-step-1">
+      <div style="font-size:13px;color:#666;margin-bottom:1rem">Elegí la categoría del activo</div>
+      <div id="catOptions"></div>
+      <div class="mactions">
+        <button class="btn-can" onclick="closeWizard()">Cancelar</button>
+        <button class="btn-next" id="wizStep1Next" onclick="wizardStep2()" disabled><i class="ti ti-arrow-right"></i> Siguiente</button>
+      </div>
+    </div>
+
+    <!-- Paso 2: Subcategoría -->
+    <div class="step" id="wizard-step-2">
+      <div style="font-size:13px;color:#666;margin-bottom:.875rem">Elegí o creá una subcategoría</div>
+      <div class="subcat-list" id="subcatOptions"></div>
+      <div class="new-subcat-row">
+        <input type="text" id="newSubcatName" placeholder="Nueva subcategoría…" oninput="checkNewSubcat()"/>
+        <button class="btn-add-subcat" id="btnAddSubcat" onclick="addSubcat()" disabled><i class="ti ti-plus"></i> Crear</button>
+      </div>
+      <div class="mactions">
+        <button class="btn-back" onclick="wizardStep1()"><i class="ti ti-arrow-left"></i> Atrás</button>
+        <button class="btn-can" onclick="closeWizard()">Cancelar</button>
+        <button class="btn-next" id="wizStep2Next" onclick="wizardStep3()" disabled><i class="ti ti-arrow-right"></i> Siguiente</button>
+      </div>
+    </div>
+
+    <!-- Paso 3: Datos del activo -->
+    <div class="step" id="wizard-step-3">
+      <div id="wizStep3Content"></div>
+      <div class="mactions" id="wizStep3Actions">
+        <button class="btn-back" onclick="wizardStep2()"><i class="ti ti-arrow-left"></i> Atrás</button>
+        <button class="btn-can" onclick="closeWizard()">Cancelar</button>
+        <button class="btn-sav" onclick="saveWizard()">Crear activo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: TRANSACCIÓN DOBLE ENTRADA ══ -->
+<div class="modal-bg" id="movBg">
+  <div class="modal">
+    <h3 id="movTitle"><i class="ti ti-transfer" style="color:#378ADD"></i> Nueva transacción</h3>
+
+    <!-- ORIGEN / DESTINO -->
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:end;margin-bottom:12px">
+      <div class="fr" style="margin:0">
+        <label>Origen</label>
+        <select id="movOrigen" onchange="onMovOrigenChange()" style="width:100%"></select>
+      </div>
+      <div style="padding-bottom:8px;color:#aaa;font-size:18px">→</div>
+      <div class="fr" style="margin:0">
+        <label>Destino</label>
+        <select id="movDestino" onchange="onMovDestinoChange()" style="width:100%"></select>
+      </div>
+    </div>
+    <div id="movSwapInfo" class="calc-box" style="display:none;margin-bottom:10px"></div>
+
+    <!-- TIPO (se actualiza según origen/destino) -->
+    <div class="fr"><label>Tipo de transacción</label>
+      <div class="toggle-row" id="movTipoSel" style="grid-template-columns:repeat(3,1fr)"></div>
+    </div>
+
+    <!-- CPP INFO del activo principal -->
+    <div id="movCppInfo" class="calc-box" style="display:none;margin-bottom:10px"></div>
+
+    <!-- Tres campos (bono / inmueble_und) -->
+    <div id="mov-tres-campos" style="display:none">
+      <div class="fr-row">
+        <div class="fr"><label id="movQtyLbl">Cantidad</label><input type="number" id="movQty" placeholder="0" min="0" step="any" oninput="rcQty()"/></div>
+        <div class="fr"><label id="movPriceLbl">Precio unitario (USD)</label><input type="number" id="movPrice" placeholder="0" min="0" step="any" oninput="rcPrice()"/></div>
+      </div>
+      <div class="fr"><label>Monto total (USD)</label><input type="number" id="movTotal" placeholder="0" min="0" step="any" oninput="rcTotal()"/></div>
+      <div style="font-size:11px;color:#aaa;margin-top:-6px;margin-bottom:10px">Completá dos — el tercero se calcula solo</div>
+    </div>
+    <!-- Campo simple -->
+    <div id="mov-simple-campo" style="display:none">
+      <div class="fr"><label id="movSimpleLbl">Monto (USD)</label><input type="number" id="movSimple" placeholder="0" min="0" step="any"/></div>
+    </div>
+    <!-- Venta -->
+    <div id="mov-venta-fields" style="display:none">
+      <div class="fr-row">
+        <div class="fr"><label id="movVQtyLbl">Cantidad a vender</label><input type="number" id="movVQty" placeholder="0" min="0" step="any" oninput="rcVenta()"/></div>
+        <div class="fr"><label>Precio venta (USD)</label><input type="number" id="movVPrice" placeholder="0" min="0" step="any" oninput="rcVenta()"/></div>
+      </div>
+      <div id="ventaCalc" class="calc-box" style="display:none"></div>
+    </div>
+    <!-- Renta/Dividendo -->
+    <div id="mov-dividendo-fields" style="display:none">
+      <div class="fr"><label>Monto de la renta (USD)</label><input type="number" id="movDivMonto" placeholder="0" min="0" step="any" oninput="onRentaChange()"/></div>
+    </div>
+    <!-- Deuda -->
+    <div id="mov-deuda-fields" style="display:none">
+      <div class="fr"><label id="movDeudaLbl">Monto (USD)</label><input type="number" id="movDeudaMonto" placeholder="0" min="0" step="any"/></div>
+    </div>
+
+    <div class="fr"><label>Fecha</label><input type="date" id="movFecha"/></div>
+    <div class="fr"><label>Notas (opcional)</label><input type="text" id="movNotes" placeholder="Broker, cuota, observaciones…"/></div>
+    <div id="movTipoInvRow">
+      <div class="msub"><i class="ti ti-shield-check"></i> Tipo de inversión</div>
+      <div class="toggle-row">
+        <button class="tog sel-of" id="togOf" onclick="selTipo('oficial')"><i class="ti ti-check"></i> Oficial</button>
+        <button class="tog" id="togBa" onclick="selTipo('barrani')"><i class="ti ti-currency-dollar-off"></i> Barrani</button>
+      </div>
+    </div>
+    <div class="calc-box" id="movCompraCalc" style="display:none"></div>
+    <div class="mactions">
+      <button class="btn-can" onclick="closeMovModal()">Cancelar</button>
+      <button class="btn-sav" onclick="saveMov()">Guardar transacción</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: EDITAR SUBCATEGORÍA ══ -->
+<div class="modal-bg" id="editSubBg">
+  <div class="modal">
+    <h3><i class="ti ti-settings" style="color:#378ADD"></i> Editar subcategoría</h3>
+    <div class="fr"><label>Nombre</label><input type="text" id="esName" placeholder="Nombre de la subcategoría"/></div>
+    <div id="es-bono-fields" style="display:none">
+      <div class="fr"><label>Ticker (para precio automático, opcional)</label><input type="text" id="esTicker" placeholder="Ej: AL30, GD30, YPF…" style="text-transform:uppercase"/></div>
+    </div>
+    <div id="es-inmueble-fields" style="display:none">
+      <div class="fr"><label>País</label>
+        <select id="esPais"><option value="">Seleccioná…</option><option>Argentina</option><option>Uruguay</option><option>Paraguay</option><option>Brasil</option><option>Israel</option><option>Estados Unidos</option><option>España</option><option>Otro</option></select>
+      </div>
+      <div id="es-inmueble-und-extra" style="display:none">
+        <div class="fr"><label>Tipo de unidad</label>
+          <select id="esInmUnit"><option value="m2">m²</option><option value="ha">hectáreas</option><option value="lotes">lotes</option><option value="unidades">unidades</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="fr" style="margin-top:4px">
+      <label><i class="ti ti-notes" style="font-size:12px;vertical-align:-1px"></i> Historial / notas (visible solo en este panel)</label>
+      <textarea id="esNotas" rows="5" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;font-family:inherit;resize:vertical;line-height:1.6;color:#333" placeholder="Pegá acá el historial de cuotas, contratos, observaciones…"></textarea>
+    </div>
+    <div class="mactions">
+      <button class="btn-del" id="btnDelSub" onclick="deleteSub()"><i class="ti ti-trash"></i> Eliminar</button>
+      <button class="btn-can" onclick="document.getElementById('editSubBg').classList.remove('open')">Cancelar</button>
+      <button class="btn-sav" onclick="saveEditSub()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: EDITAR MOVIMIENTO ══ -->
+<div class="modal-bg" id="editMovBg">
+  <div class="modal">
+    <h3><i class="ti ti-pencil" style="color:#378ADD"></i> Editar movimiento</h3>
+    <div class="fr"><label>Tipo</label><div id="emTipoLabel" style="font-size:13px;font-weight:600;color:#555;padding:5px 0"></div></div>
+    <div id="em-tres-campos">
+      <div class="fr-row">
+        <div class="fr"><label id="emQtyLbl">Cantidad</label><input type="number" id="emQty" placeholder="0" min="0" step="any" oninput="rcEditQty()"/></div>
+        <div class="fr"><label>Precio unitario (USD)</label><input type="number" id="emPrice" placeholder="0" min="0" step="any" oninput="rcEditPrice()"/></div>
+      </div>
+      <div class="fr"><label>Monto total (USD)</label><input type="number" id="emTotal" placeholder="0" min="0" step="any" oninput="rcEditTotal()"/></div>
+      <div style="font-size:11px;color:#aaa;margin-top:-6px;margin-bottom:10px">Completá dos — el tercero se calcula solo</div>
+    </div>
+    <div id="em-simple-campo" style="display:none">
+      <div class="fr"><label id="emSimpleLbl">Monto (USD)</label><input type="number" id="emSimple" placeholder="0" min="0" step="any"/></div>
+    </div>
+    <div class="fr"><label>Fecha</label><input type="date" id="emFecha"/></div>
+    <div class="fr"><label>Notas (opcional)</label><input type="text" id="emNotes" placeholder="Observaciones…"/></div>
+    <div class="mactions">
+      <button class="btn-can" onclick="document.getElementById('editMovBg').classList.remove('open')">Cancelar</button>
+      <button class="btn-sav" onclick="saveEditMov()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: TRASPASO ENTRE SUBCATEGORÍAS ══ -->
+<div class="modal-bg" id="traspasoBg">
+  <div class="modal">
+    <h3><i class="ti ti-transfer" style="color:#378ADD"></i> Traspaso entre activos</h3>
+    <div class="fr"><label>Desde (origen)</label><select id="trOrigen" onchange="trActualizar()" style="width:100%"></select></div>
+    <div class="fr"><label id="trMontoLbl">Monto a traspasar (USD)</label><input type="number" id="trMonto" placeholder="0" min="0" step="any" oninput="trActualizar()"/></div>
+    <div class="fr"><label>Hacia (destino)</label><select id="trDestino" style="width:100%"></select></div>
+    <div id="trCalc" class="calc-box" style="display:none"></div>
+    <div class="fr"><label>Fecha</label><input type="date" id="trFecha"/></div>
+    <div class="fr"><label>Descripción</label><input type="text" id="trDesc" placeholder="Ej: Intereses bono YPF cobrados en Safra…"/></div>
+    <div class="msub"><i class="ti ti-shield-check"></i> Tipo de inversión (destino)</div>
+    <div class="toggle-row">
+      <button class="tog sel-of" id="trTipoOf" onclick="selTrTipo('oficial')"><i class="ti ti-check"></i> Oficial</button>
+      <button class="tog" id="trTipoBa" onclick="selTrTipo('barrani')"><i class="ti ti-currency-dollar-off"></i> Barrani</button>
+    </div>
+    <div class="mactions">
+      <button class="btn-can" onclick="document.getElementById('traspasoBg').classList.remove('open')">Cancelar</button>
+      <button class="btn-sav" onclick="saveTraspaso()">Registrar traspaso</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: DISTRIBUCIÓN A SOCIOS ══ -->
+<div class="modal-bg" id="distribBg">
+  <div class="modal">
+    <h3><i class="ti ti-users" style="color:#a0207a"></i> Distribución a socios</h3>
+    <div style="font-size:12px;color:#888;margin-bottom:1rem">El monto se divide en partes iguales entre Brian, Ezequiel y Tere y sale del patrimonio.</div>
+    <div class="fr"><label>Desde (subcategoría)</label><select id="distOrigen" onchange="distActualizar()" style="width:100%"></select></div>
+    <div class="fr"><label>Monto total a distribuir (USD)</label><input type="number" id="distMonto" placeholder="0" min="0" step="any" oninput="distActualizar()"/></div>
+    <div id="distCalc" class="calc-box" style="display:none"></div>
+    <div class="fr"><label>Fecha</label><input type="date" id="distFecha"/></div>
+    <div class="fr"><label>Descripción (opcional)</label><input type="text" id="distDesc" placeholder="Ej: Distribución Q1, intereses bono YPF…"/></div>
+    <div class="mactions">
+      <button class="btn-can" onclick="document.getElementById('distribBg').classList.remove('open')">Cancelar</button>
+      <button class="btn-sav" onclick="saveDistrib()">Registrar distribución</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: CIERRE DEFINITIVO ══ -->
+<div class="modal-bg" id="closeBg">
+  <div class="close-modal">
+    <h3><i class="ti ti-lock" style="color:#1D9E75"></i> Cerrar estado definitivo</h3>
+    <p>Guardará una <strong>foto permanente</strong> de tu patrimonio. Podrás iniciar un nuevo borrador después.</p>
+    <div class="info-box" id="closeInfoBox"></div>
+    <div class="fr"><label><strong>Fecha del estado</strong></label><input type="date" id="closeFecha" style="width:100%"/></div>
+    <div class="fr"><label>Descripción (opcional)</label><input type="text" id="closeDesc" placeholder="Ej: Cierre Q1, revisión semestral…"/></div>
+    <div class="close-actions">
+      <button class="btn-can" onclick="document.getElementById('closeBg').classList.remove('open')">Cancelar</button>
+      <button class="btn-green" onclick="confirmarCierre()"><i class="ti ti-lock"></i> Guardar definitivo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: VER HISTÓRICO ══ -->
+<div class="modal-bg" id="viewHistBg">
+  <div class="modal" style="width:min(640px,97vw)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem">
+      <h3 id="viewHistTitle" style="margin:0;font-size:15px">Estado al…</h3>
+      <button class="btn-can" onclick="document.getElementById('viewHistBg').classList.remove('open')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="viewHistContent"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// CATEGORÍAS FIJAS
+// ══════════════════════════════════════════════════════════════
+const CATS = [
+  { id:'bancos',    label:'Cuentas bancarias',         icon:'ti-building-bank',      color:'#378ADD', bg:'#ddeefa', tipo:'banco'        },
+  { id:'bonos',     label:'Bonos y títulos',            icon:'ti-chart-candle',       color:'#1D9E75', bg:'#d5f0e6', tipo:'bono'         },
+  { id:'sociedades',label:'Participaciones societarias',icon:'ti-building-community', color:'#7F77DD', bg:'#eeeeff', tipo:'sociedad'     },
+  { id:'inmuebles', label:'Inmuebles',                  icon:'ti-home',               color:'#D85A30', bg:'#fde8de', tipo:'inmueble'     }
+];
+
+// ══════════════════════════════════════════════════════════════
+// ESTADO
+// draft.subcats = [ { id, catId, nombre, ticker?, inmTipo('und'|'pct')?, inmUnit?, pais? } ]
+// draft.activos = [ { id, subcatId, movimientos:[] } ]  (activo == subcategoria en este modelo)
+// En realidad la SUBCATEGORÍA ES el activo — un activo tiene movimientos
+// ══════════════════════════════════════════════════════════════
+const SYM = {USD:'U$S ', ARS:'$ ', EUR:'€ '};
+let cur = 'USD', chart = null;
+let tipoSel = 'oficial';
+let currentMovSubId = null, currentMovTipo = 'compra';
+let currentEditSubId = null;
+let currentEditMovSubId = null, currentEditMovId = null;
+let wizCatId = null, wizSubcatId = null, wizNewSubcatId = null;
+let inmTipoWiz = 'und';
+
+// ── SUPABASE CONFIG ──────────────────────────────────────────
+const SB_URL = 'https://xsjeyqnpppnuojfeeglp.supabase.co';
+const SB_KEY = 'sb_publishable_UzLgldTW5IMBamWuAsm7AQ_ah7h3jfa';
+async function sbLoad(){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/patrimonio?id=eq.main&select=draft,history',{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+    if(!r.ok)return null;
+    const rows=await r.json();
+    return rows&&rows.length>0?rows[0]:null;
+  }catch(e){console.error('sbLoad:',e);return null;}
+}
+async function sbSave(d,h){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/patrimonio',{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'},body:JSON.stringify({id:'main',draft:d,history:h,updated_at:new Date().toISOString()})});
+    return r.ok;
+  }catch(e){console.error('sbSave:',e);return false;}
+}
+function ls(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+
+// Migrate from old format if needed, else start fresh
+let draft = ls('epv3_draft', null);
+if(!draft || !draft.subcats) {
+  draft = { subcats:[], estado:'borrador', lastSaved:null };
+  // Seed default subcats from old data if exists
+  const oldDraft = ls('epv2_draft', null);
+  if(oldDraft && oldDraft.activos) {
+    // migrate
+    oldDraft.activos.forEach(a => {
+      const catMap = {bancos:'bancos',safra:'bancos',ivsa:'bancos',provalor:'bancos',bonos:'bonos',hatzalacha:'sociedades',citypro:'sociedades',thames:'inmuebles',pir6:'inmuebles',condouy:'inmuebles',condopy:'inmuebles',usa:'inmuebles'};
+      const nameMap = {safra:'Safra',ivsa:'IVSA Brian',provalor:'Provalor',bonos:'Bonos',hatzalacha:'Hatzalacha Bye Israel',citypro:'City Pro Israel',thames:'Thames',pir6:'PIR6',condouy:'Condo Hotel Uruguay',condopy:'Condo Hotel Paraguay',usa:'USA Chapel / Vanderbilt'};
+      const catId = catMap[a.cat] || 'bancos';
+      const nombre = nameMap[a.cat] || a.desc;
+      const catObj = CATS.find(c=>c.id===catId);
+      let sc = draft.subcats.find(s=>s.catId===catId && s.nombre===nombre);
+      if(!sc){
+        sc = { id:'sc_'+Date.now()+'_'+Math.random().toString(36).slice(2), catId, nombre, movimientos: a.movimientos||[], ticker: a.ticker||null, inmTipo: a.tipo==='inmueble_pct'?'pct':'und', inmUnit: a.inmTipoUnit||null, pais: a.pais||null, _precioMercado: a._precioMercado||null };
+        draft.subcats.push(sc);
+      }
+    });
+  } else {
+    // Seed default subcats
+    const defaults = [
+      {catId:'bancos',nombre:'Safra'},{catId:'bancos',nombre:'IVSA Brian'},{catId:'bancos',nombre:'Provalor'},
+      {catId:'bonos',nombre:'Bonos'},
+      {catId:'sociedades',nombre:'Hatzalacha Bye Israel'},{catId:'sociedades',nombre:'City Pro Israel'},
+      {catId:'inmuebles',nombre:'Thames',pais:'Argentina'},{catId:'inmuebles',nombre:'PIR6',pais:'Argentina'},
+      {catId:'inmuebles',nombre:'Condo Hotel Uruguay',pais:'Uruguay'},{catId:'inmuebles',nombre:'Condo Hotel Paraguay',pais:'Paraguay'},
+      {catId:'inmuebles',nombre:'USA Chapel / Vanderbilt',pais:'Estados Unidos'}
+    ];
+    defaults.forEach(d => {
+      const catObj = CATS.find(c=>c.id===d.catId);
+      draft.subcats.push({ id:'sc_'+Date.now()+'_'+Math.random().toString(36).slice(2), movimientos:[], ticker:null, inmTipo:'und', inmUnit:null, _precioMercado:null, ...d });
+    });
+  }
+}
+let history = ls('epv3_history', []);
+const save = () => {
+  lsSet('epv3_draft', draft);
+  lsSet('epv3_history', history);
+  sbSave(draft, history).then(ok => { if(!ok) console.warn('Supabase save failed'); });
+};
+
+// ── HELPERS ──────────────────────────────────────────────────
+const fmt  = n => SYM[cur] + Math.round(n).toLocaleString('es-AR');
+const fmtD = (n,d=2) => SYM[cur] + parseFloat(n.toFixed(d)).toLocaleString('es-AR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtN = (n,d=4) => parseFloat(n.toFixed(d)).toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:d});
+const fmtFecha = iso => { if(!iso)return'—'; const[y,m,d]=iso.split('-'); const ms=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']; return d+' '+ms[parseInt(m)-1]+'. '+y; };
+function setCur(v){cur=v;render();}
+function selTipo(t){tipoSel=t;document.getElementById('togOf').className='tog'+(t==='oficial'?' sel-of':'');document.getElementById('togBa').className='tog'+(t==='barrani'?' sel-ba':'');}
+function catOf(sc){ return CATS.find(c=>c.id===sc.catId)||CATS[0]; }
+function tipoActivo(sc){ const c=catOf(sc); if(c.id==='bonos')return'bono'; if(c.id==='inmuebles')return sc.inmTipo==='pct'?'inmueble_pct':'inmueble_und'; if(c.id==='sociedades')return'sociedad'; return'banco'; }
+function usaTresCampos(sc){ const t=tipoActivo(sc); return t==='bono'||t==='inmueble_und'; }
+
+// ── CPP ENGINE ───────────────────────────────────────────────
+function calcSC(sc){
+  let stock=0, cap=0, ganR=0;
+  const movs=[...sc.movimientos].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  for(const m of movs){
+    if(m.tipo==='compra'||m.tipo==='aporte'){
+      stock+=m.qty; cap+=m.qty*m.price; m._cpp=stock>0?cap/stock:m.price;
+    } else if(m.tipo==='venta'){
+      const cpp=stock>0?cap/stock:0;
+      const q=Math.min(m.qty,stock);
+      const costo=q*cpp, ingreso=q*m.price;
+      m._gan=ingreso-costo; ganR+=m._gan;
+      stock-=q; cap-=costo; m._cpp=stock>0?cap/stock:0;
+    } else if(m.tipo==='dividendo'){
+      m._gan=m.monto||0; ganR+=m._gan;
+    }
+  }
+  return { stock, cpp:stock>0?cap/stock:0, cap:Math.max(0,cap), ganR };
+}
+function valPatr(sc){
+  const c=calcSC(sc);
+  const ta=sc.tipo_activo||'estandar';
+  if(tipoActivo(sc)==='bono'){ return c.stock*(sc._precioMercado||c.cpp); }
+  if(ta==='sociedad_dividendos') return c.totalAportado;
+  if(ta==='recupero_capital') return Math.max(0, c.totalAportado - c.totalRecuperado);
+  return c.cap;
+}
+function valPatrNeto(sc){
+  const c=calcSC(sc);
+  return valPatr(sc)-c.pasivoPendiente;
+}
+function totalPasivos(subcats){
+  return (subcats||draft.subcats).reduce((s,sc)=>s+calcSC(sc).pasivoPendiente,0);
+}
+function totalPatrNeto(subcats){
+  return totalAll(subcats)-totalPasivos(subcats);
+}
+function totalAll(subcats){ return (subcats||draft.subcats).reduce((s,sc)=>s+valPatr(sc),0); }
+function totalCat(catId, subcats){ return (subcats||draft.subcats).filter(sc=>sc.catId===catId).reduce((s,sc)=>s+valPatr(sc),0); }
+function totalGanR(subcats){ return (subcats||draft.subcats).reduce((s,sc)=>s+calcSC(sc).ganR,0); }
+function totalGanNR(subcats){ return (subcats||draft.subcats).filter(sc=>tipoActivo(sc)==='bono').reduce((s,sc)=>{ const c=calcSC(sc); return s+(c.stock*(sc._precioMercado||c.cpp)-c.cap); },0); }
+function totalTipo(tipo, subcats){ return (subcats||draft.subcats).filter(sc=>{ const ul=sc.movimientos.filter(m=>m.tipo_inv).slice(-1)[0]; return ul&&ul.tipo_inv===tipo; }).reduce((s,sc)=>s+valPatr(sc),0); }
+
+// ── TABS ─────────────────────────────────────────────────────
+function showTab(t){
+  ['resumen','detalle','historial','comparar','compartir'].forEach((tab,i)=>{
+    document.querySelector('.tabs').children[i].classList.toggle('active',tab===t);
+    document.getElementById('tab-'+tab).classList.toggle('active',tab===t);
+  });
+  if(t==='resumen')renderChart();
+  if(t==='historial')renderHistorial();
+  if(t==='comparar')renderCompSelectors();
+  if(t==='compartir')renderPreview();
+}
+function render(){renderTopbar();renderMetrics();renderDetail();if(document.getElementById('tab-resumen').classList.contains('active'))renderChart();if(document.getElementById('tab-compartir').classList.contains('active'))renderPreview();}
+
+// ── TOPBAR ────────────────────────────────────────────────────
+function renderTopbar(){
+  const tot=totalAll();
+  document.getElementById('estadoSub').textContent=draft.lastSaved?'Último guardado: '+fmtFecha(draft.lastSaved.split('T')[0]):'Sin guardar aún';
+  document.getElementById('estadoBadge').innerHTML=draft.estado==='borrador'?'<span class="badge-borrador"><i class="ti ti-edit"></i> Borrador</span>':'<span class="badge-def"><i class="ti ti-lock"></i> Cerrado</span>';
+  const totPas=totalPasivos();
+  const patriNeto=tot-totPas;
+  document.getElementById('footerInfo').innerHTML='Activos: <strong>'+fmt(tot)+'</strong>'+(totPas>0?' · Pasivos: <strong style="color:#c0392b">'+fmt(totPas)+'</strong> · Neto: <strong style="color:#0a6040">'+fmt(patriNeto)+'</strong>':'')+'  <span style="color:#ddd">|</span> '+draft.subcats.length+' activos';
+}
+
+// ── MÉTRICAS ──────────────────────────────────────────────────
+function renderMetrics(){
+  const tot=totalAll(), ganR=totalGanR(), ganNR=totalGanNR();
+  const topC=CATS.slice().sort((a,b)=>totalCat(b.id)-totalCat(a.id))[0];
+  const totOf=totalTipo('oficial'), totBa=totalTipo('barrani');
+  const totPasivos=totalPasivos();
+  const patrimonioNeto=totalPatrNeto();
+  document.getElementById('metricsGrid').innerHTML=
+    '<div class="mc"><div class="lbl">Activos totales</div><div class="val">'+fmt(tot)+'</div><div class="sub">'+draft.subcats.length+' activos</div></div>'+
+    '<div class="mc"><div class="lbl">Pasivos totales</div><div class="val" style="color:'+(totPasivos>0?'#c0392b':'#999')+'">'+fmt(totPasivos)+'</div><div class="sub">deuda pendiente</div></div>'+
+    '<div class="mc"><div class="lbl">Patrimonio neto</div><div class="val" style="color:'+(patrimonioNeto>=0?'#0a6040':'#c0392b')+'">'+fmt(patrimonioNeto)+'</div><div class="sub">activos − pasivos</div></div>'+
+    '<div class="mc"><div class="lbl">Ganancia realizada</div><div class="val" style="color:'+(ganR>=0?'#0a6040':'#c0392b')+'">'+fmt(ganR)+'</div><div class="sub">ventas + dividendos</div></div>';
+  document.getElementById('summaryPills').innerHTML=
+    '<div class="sp" style="border-color:#1D9E75"><i class="ti ti-check" style="color:#1D9E75"></i>Oficial: <strong>'+fmt(totOf)+'</strong></div>'+
+    '<div class="sp" style="border-color:#e0a020"><i class="ti ti-currency-dollar-off" style="color:#8a5a00"></i>Barrani: <strong>'+fmt(totBa)+'</strong></div>';
+}
+
+// ── DETALLE ───────────────────────────────────────────────────
+function renderDetail(){
+  const tot=totalAll();
+  let html='<div class="expand-all-row">'+
+    '<button class="expand-all-btn" onclick="expandAll()"><i class="ti ti-arrows-maximize"></i> Expandir todo</button>'+
+    '<button class="expand-all-btn" onclick="collapseAll()"><i class="ti ti-arrows-minimize"></i> Colapsar todo</button>'+
+  '</div>';
+  CATS.forEach(cat=>{
+    const subs=draft.subcats.filter(sc=>sc.catId===cat.id);
+    const catTot=totalCat(cat.id);
+    html+='<div class="cat-group"><div class="cat-group-header"><div class="cat-group-title"><i class="ti '+cat.icon+'" style="color:'+cat.color+'"></i>'+cat.label+'</div><div class="cat-group-total">'+fmt(catTot)+'</div></div><div class="sub-cards">';
+    subs.forEach(sc=>{
+      const c=calcSC(sc), vp=valPatr(sc), pct=tot?Math.round(vp/tot*100):0;
+      const ulTipo=(sc.movimientos.filter(m=>m.tipo_inv).slice(-1)[0]||{}).tipo_inv||'oficial';
+      const pillTipo=ulTipo==='oficial'?'<span class="pill pill-of">Oficial</span>':'<span class="pill pill-ba">Barrani</span>';
+      let extraPills='';
+      const ta=tipoActivo(sc);
+      const sc_tipo2=sc.tipo_activo||'estandar';
+      if(ta==='bono'){
+        const gnr=vp-c.cap;
+        extraPills+='<span class="pill pill-cpp">CPP '+fmtD(c.cpp)+'</span>';
+        if(gnr!==0)extraPills+='<span class="pill pill-nr">'+(gnr>=0?'+':'')+fmt(gnr)+' no real.</span>';
+        if(sc.ticker)extraPills+='<span class="ticker-badge" data-scid="'+sc.id+'">'+sc.ticker+' <i class="ti ti-refresh" style="font-size:10px"></i></span>';
+      } else if(ta==='inmueble_und'){
+        extraPills+='<span class="pill pill-cpp">CPP '+fmtD(c.cpp)+'</span>';
+        if(sc.pais)extraPills+='<span class="pill pill-pais">'+sc.pais+'</span>';
+      } else if(ta==='inmueble_pct'){
+        if(sc.pais)extraPills+='<span class="pill pill-pais">'+sc.pais+'</span>';
+      }
+      // Recupero de capital pill
+      if(sc_tipo2==='recupero_capital'&&c.totalAportado>0){
+        const pct=Math.round((c.totalRecuperado/c.totalAportado)*100);
+        extraPills+='<span class="pill" style="background:#f0f8ff;color:#1a4fa0">Recuperado '+pct+'%</span>';
+        if(c.ganR>0) extraPills+='<span class="pill pill-ganr">Ganancia '+fmt(c.ganR)+'</span>';
+      }
+      if(c.ganR&&sc_tipo2!=='recupero_capital')extraPills+='<span class="pill pill-ganr">Realiz. '+fmt(c.ganR)+'</span>';
+      let subMeta='';
+      if(ta==='bono') subMeta=fmtN(c.stock)+' u. · CPP '+fmtD(c.cpp)+(sc._precioMercado?' · VM '+fmtD(sc._precioMercado):'');
+      else if(ta==='inmueble_und') subMeta=fmtN(c.stock)+' '+(sc.inmUnit||'u.')+' · CPP '+fmtD(c.cpp);
+      else if(sc_tipo2==='recupero_capital'){
+        const pendiente=Math.max(0,c.totalAportado-c.totalRecuperado);
+        const pct=c.totalAportado>0?Math.round((c.totalRecuperado/c.totalAportado)*100):0;
+        subMeta='Aportado: '+fmt(c.totalAportado)+' · Recuperado: '+fmt(c.totalRecuperado)+' ('+pct+'%) · Pendiente: '+fmt(pendiente);
+      } else if(sc_tipo2==='sociedad_dividendos'){
+        subMeta='Capital aportado: '+fmt(c.totalAportado)+(c.ganR?' · Dividendos: '+fmt(c.ganR):'');
+      } else subMeta='Capital: '+fmt(c.cap);
+      // Movement rows
+      const movsSorted=[...sc.movimientos].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+      let movRows='';
+      calcSC(sc); // ensure _gan is computed
+      movsSorted.forEach(m=>{
+        const isBanco=catOf(sc).id==='bancos';
+        const iconMap={
+          compra:'ti-arrow-down-circle',
+          venta: isBanco?'ti-arrow-up-circle':'ti-arrow-up-circle',
+          aporte: isBanco?'ti-arrow-down-circle':'ti-circle-plus',
+          dividendo:'ti-cash',
+          recupero:'ti-arrow-down-circle',
+          devolucion_capital:'ti-corner-down-left',
+          distribucion:'ti-users',
+          interes:'ti-trending-up',
+          gasto:'ti-trending-down',
+          contraer_deuda:'ti-credit-card',
+          pago_deuda:'ti-circle-check'
+        };
+        const colorClassMap={
+          compra:'mov-compra-icon',
+          venta: isBanco?'mov-venta-icon':'mov-venta-icon',
+          aporte: isBanco?'mov-compra-icon':'mov-aporte-icon',
+          dividendo:'mov-dividendo-icon',
+          recupero:'mov-aporte-icon',
+          devolucion_capital:'mov-venta-icon',
+          distribucion:'mov-distrib-icon',
+          interes:'mov-dividendo-icon',
+          gasto:'mov-venta-icon',
+          contraer_deuda:'mov-venta-icon',
+          pago_deuda:'mov-compra-icon'
+        };
+        const labelMap={
+          compra:'Compra',
+          venta: isBanco?'Salida':'Venta',
+          aporte: isBanco?'Entrada':'Aporte',
+          dividendo:'Renta',
+          recupero:'Recupero de capital',
+          devolucion_capital:'Devolución de aporte',
+          distribucion:'Distribución socios',
+          interes:'Interés cobrado',
+          gasto:'Gasto bancario',
+          contraer_deuda:'Deuda contraída',
+          pago_deuda:'Pago de deuda'
+        };
+        const mQtyTxt=(m.qty&&m.qty!==1&&m.tipo!=='dividendo')?' · '+fmtN(m.qty)+' '+(sc.inmUnit||'u.')+' @ '+fmtD(m.price):'';
+        const mAmt=m.tipo==='dividendo'?fmt(m.monto||0):fmt(m.qty*m.price);
+        const ganVal=m._gan;
+        const ganHtml=ganVal!=null?'<div class="mov-gain-val '+(ganVal>=0?'gain-pos':'gain-neg')+'">'+(ganVal>=0?'+':'')+fmt(ganVal)+'</div>':'';
+        movRows+='<div class="mov-hist-row">'+
+          '<div class="mov-icon-wrap '+colorClassMap[m.tipo]+'"><i class="ti '+iconMap[m.tipo]+'"></i></div>'+
+          '<div class="mov-info-wrap">'+
+            '<div class="mov-desc-txt">'+labelMap[m.tipo]+mQtyTxt+'</div>'+
+            '<div class="mov-meta-txt">'+fmtFecha(m.fecha)+(m.notes?' · '+m.notes:'')+'</div>'+
+          '</div>'+
+          '<div class="mov-amt-wrap"><div class="mov-amt-val">'+mAmt+'</div>'+ganHtml+'</div>'+
+          (bloqueadoPorCierre(m.fecha)?
+            '<div class="mov-actions"><span class="mov-locked" title="Incluido en un cierre — no editable. Cargá una corrección con fecha de hoy si hace falta."><i class="ti ti-lock"></i> Cerrado</span></div>'
+          :
+            '<div class="mov-actions">'+
+              '<button class="mov-act-btn edit" data-scid="'+sc.id+'" data-mid="'+m.id+'"><i class="ti ti-pencil"></i> Editar</button>'+
+              '<button class="mov-act-btn del" data-scid="'+sc.id+'" data-mid="'+m.id+'"><i class="ti ti-trash"></i> Eliminar</button>'+
+            '</div>'
+          )+
+        '</div>';
+      });
+      html+='<div class="sub-card">'+
+        '<div class="sub-card-head">'+
+          '<div class="sub-card-icon" style="background:'+cat.bg+'"><i class="ti '+cat.icon+'" style="color:'+cat.color+'"></i></div>'+
+          '<div class="sub-card-info"><div class="sub-card-name">'+sc.nombre+'</div><div class="sub-card-meta">'+subMeta+'</div></div>'+
+          '<div class="sub-card-amt">'+
+            '<div class="val">'+fmt(c.pasivoPendiente>0?valPatrNeto(sc):vp)+'</div>'+
+            (c.pasivoPendiente>0?'<div class="pct" style="color:#c0392b">-'+fmt(c.pasivoPendiente)+'</div>':'<div class="pct">'+pct+'%</div>')+
+          '</div>'+
+        '</div>'+
+        '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+cat.color+'"></div></div>'+
+        '<div class="pills">'+pillTipo+extraPills+'</div>'+
+        // Pasivo section
+        (c.pasivoPendiente>0||sc.movimientos.some(m=>m.tipo==='contraer_deuda')?
+          '<div class="pasivo-section">'+
+            '<div class="pasivo-header"><span><i class="ti ti-credit-card" style="font-size:11px;vertical-align:-1px;margin-right:4px"></i>Pasivo vinculado</span></div>'+
+            '<div class="pasivo-detail">'+
+              'Deuda total contraída: <strong>'+fmt(sc.movimientos.filter(m=>m.tipo==='contraer_deuda').reduce((s,m)=>s+(m.monto||m.price||0),0))+'</strong><br>'+
+              'Pagado: '+fmt(c.totalDeudaPagada)+' · '+
+              'Pendiente: <strong style="color:#c0392b">'+fmt(c.pasivoPendiente)+'</strong><br>'+
+              'Patrimonio neto: <span class="'+(valPatrNeto(sc)>=0?'patrimonio-neto-pos':'patrimonio-neto-neg')+'">'+fmt(valPatrNeto(sc))+'</span>'+
+            '</div>'+
+          '</div>'
+        :'')+
+        (sc.notas?
+          '<button class="notes-collapse-btn" data-nid="'+sc.id+'"><span><i class="ti ti-notes" style="font-size:11px;vertical-align:-1px;margin-right:4px"></i> Notas / historial</span><i class="ti ti-chevron-down notes-arrow"></i></button>'+
+          '<div class="notes-wrap" id="noteswrap_'+sc.id+'" style="max-height:0px">'+
+            '<div style="margin:0 14px 10px;padding:8px 10px;background:#f9f8f5;border-radius:0 0 8px 8px;border:1px solid #eeece5;border-top:none">'+
+              '<div style="font-size:11px;color:#777;white-space:pre-wrap;line-height:1.6">'+sc.notas+'</div>'+
+            '</div>'+
+          '</div>'
+        :'');
+        // Collapse state
+        const isOpen = expandedState.has(sc.id);
+        const movLabel = sc.movimientos.length + ' movimiento' + (sc.movimientos.length!==1?'s':'');
+        html +=
+        '<div class="sc-collapse-btn '+(isOpen?'open':'')+'" id="scbtn_'+sc.id+'" data-scid="'+sc.id+'">'+
+          '<span class="sc-collapse-label"><i class="ti ti-history" style="font-size:11px"></i> <span id="sclbl_'+sc.id+'">'+(isOpen?'Ocultar movimientos':movLabel)+'</span></span>'+
+          '<i class="ti ti-chevron-down sc-collapse-arrow"></i>'+
+        '</div>'+
+        '<div class="sc-mov-wrap" id="scwrap_'+sc.id+'" style="max-height:'+(isOpen?'9999px':'0px')+'">'+
+          '<div class="mov-list">'+movRows+'</div>'+
+        '</div>'+
+        '<div class="sub-card-footer">'+
+          '<button class="add-mov-btn" data-scid="'+sc.id+'"><i class="ti ti-plus" style="font-size:12px"></i> Agregar movimiento</button>'+
+          '<button class="edit-sub-btn" data-scid="'+sc.id+'"><i class="ti ti-settings"></i> Editar</button>'+
+        '</div>'+
+      '</div>';
+    });
+    if(!subs.length) html+='<div style="grid-column:1/-1;padding:1.5rem;text-align:center;color:#bbb;font-size:13px;background:#fff;border:1px dashed #e0e0e0;border-radius:12px">Sin activos en esta categoría — usá "Nuevo activo" para agregar</div>';
+    html+='</div></div>';
+  });
+  document.getElementById('tab-detalle').innerHTML=html;
+}
+
+// ── CHART ─────────────────────────────────────────────────────
+function renderChart(){
+  const tot=totalAll();
+  const data=CATS.map(c=>totalCat(c.id));
+  document.getElementById('chartLegend').innerHTML=CATS.map((c,i)=>'<span class="leg-item"><span class="leg-dot" style="background:'+c.color+'"></span>'+c.label+' '+(tot?Math.round(data[i]/tot*100):0)+'%</span>').join('');
+  const ctx=document.getElementById('donutChart').getContext('2d');
+  if(chart)chart.destroy();
+  chart=new Chart(ctx,{type:'doughnut',data:{labels:CATS.map(c=>c.label),datasets:[{data,backgroundColor:CATS.map(c=>c.color),borderWidth:3,borderColor:'#f5f5f2'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)+' ('+Math.round(c.raw/(tot||1)*100)+'%)'}}},cutout:'60%'}});
+}
+
+// ── WIZARD: NUEVO ACTIVO ──────────────────────────────────────
+function openWizard(){
+  wizCatId=null; wizSubcatId=null; wizNewSubcatId=null; inmTipoWiz='und';
+  // Build cat options
+  document.getElementById('catOptions').innerHTML=CATS.map(c=>
+    '<div class="cat-option" data-catid="'+c.id+'" onclick="selectWizCat(\''+c.id+'\')">'+
+      '<div class="cat-option-icon" style="background:'+c.bg+'"><i class="ti '+c.icon+'" style="color:'+c.color+'"></i></div>'+
+      '<div><div class="cat-option-label">'+c.label+'</div><div class="cat-option-sub">'+draft.subcats.filter(s=>s.catId===c.id).length+' subcategorías</div></div>'+
+    '</div>'
+  ).join('');
+  document.getElementById('wizStep1Next').disabled=true;
+  document.getElementById('newSubcatName').value='';
+  renderWizSteps(1);
+  document.querySelectorAll('.step').forEach((s,i)=>{s.className='step'+(i===0?' active':'');});
+  document.getElementById('wizardBg').classList.add('open');
+}
+function closeWizard(){document.getElementById('wizardBg').classList.remove('open');}
+function renderWizSteps(active){
+  const labels=['Categoría','Subcategoría','Datos'];
+  document.getElementById('wizardSteps').innerHTML=labels.map((l,i)=>{
+    const n=i+1;
+    const cls=n<active?'done':n===active?'active':'pending';
+    return '<div class="step-dot '+cls+'">'+n+'</div>'+(i<labels.length-1?'<div class="step-line'+(n<active?' done':'')+'"></div>':'');
+  }).join('');
+}
+function selectWizCat(catId){
+  wizCatId=catId;
+  document.querySelectorAll('.cat-option').forEach(el=>el.classList.toggle('selected',el.dataset.catid===catId));
+  document.getElementById('wizStep1Next').disabled=false;
+}
+function wizardStep1(){
+  renderWizSteps(1);
+  document.querySelectorAll('.step').forEach((s,i)=>{s.className='step'+(i===0?' active':'');});
+}
+function wizardStep2(){
+  if(!wizCatId)return;
+  const cat=CATS.find(c=>c.id===wizCatId);
+  const subs=draft.subcats.filter(s=>s.catId===wizCatId);
+  wizSubcatId=null;
+  document.getElementById('subcatOptions').innerHTML=subs.map(s=>
+    '<div class="subcat-option" data-scid="'+s.id+'" onclick="selectWizSubcat(\''+s.id+'\')">'+
+      '<i class="ti '+cat.icon+'" style="color:'+cat.color+';font-size:14px"></i>'+s.nombre+
+      '<span class="sc-meta">'+s.movimientos.length+' mov.</span>'+
+    '</div>'
+  ).join('');
+  document.getElementById('newSubcatName').value='';
+  document.getElementById('btnAddSubcat').disabled=true;
+  document.getElementById('wizStep2Next').disabled=true;
+  renderWizSteps(2);
+  document.querySelectorAll('.step').forEach((s,i)=>{s.className='step'+(i===1?' active':'');});
+}
+function selectWizSubcat(scId){
+  wizSubcatId=scId; wizNewSubcatId=null;
+  document.querySelectorAll('.subcat-option').forEach(el=>el.classList.toggle('selected',el.dataset.scid===scId));
+  document.getElementById('wizStep2Next').disabled=false;
+}
+function checkNewSubcat(){
+  const val=document.getElementById('newSubcatName').value.trim();
+  document.getElementById('btnAddSubcat').disabled=!val;
+}
+function addSubcat(){
+  const nombre=document.getElementById('newSubcatName').value.trim();
+  if(!nombre||!wizCatId)return;
+  const sc={id:'sc_'+Date.now(),catId:wizCatId,nombre,movimientos:[],ticker:null,inmTipo:'und',inmUnit:null,pais:null,_precioMercado:null};
+  draft.subcats.push(sc);
+  wizNewSubcatId=sc.id;
+  wizSubcatId=sc.id;
+  // Re-render subcat list
+  const cat=CATS.find(c=>c.id===wizCatId);
+  const subs=draft.subcats.filter(s=>s.catId===wizCatId);
+  document.getElementById('subcatOptions').innerHTML=subs.map(s=>
+    '<div class="subcat-option'+(s.id===sc.id?' selected':'')+'" data-scid="'+s.id+'" onclick="selectWizSubcat(\''+s.id+'\')">'+
+      '<i class="ti '+cat.icon+'" style="color:'+cat.color+';font-size:14px"></i>'+s.nombre+
+      '<span class="sc-meta">'+s.movimientos.length+' mov.</span>'+
+    '</div>'
+  ).join('');
+  document.getElementById('newSubcatName').value='';
+  document.getElementById('btnAddSubcat').disabled=true;
+  document.getElementById('wizStep2Next').disabled=false;
+}
+function wizardStep3(){
+  if(!wizSubcatId)return;
+  const sc=draft.subcats.find(s=>s.id===wizSubcatId);
+  const cat=CATS.find(c=>c.id===sc.catId);
+  const ta=tipoActivo(sc);
+  let html='<div style="margin-bottom:1rem">';
+  html+='<div style="font-size:12px;color:#888;margin-bottom:4px">Subcategoría</div>';
+  html+='<div style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600"><div style="width:28px;height:28px;border-radius:7px;background:'+cat.bg+';display:flex;align-items:center;justify-content:center"><i class="ti '+cat.icon+'" style="color:'+cat.color+'"></i></div>'+sc.nombre+' <span style="font-size:12px;color:#aaa;font-weight:400">— '+cat.label+'</span></div>';
+  html+='</div>';
+  if(ta==='bono'){
+    html+='<div class="fr"><label>Ticker (para precio automático, opcional)</label><input type="text" id="wizTicker" placeholder="Ej: AL30, GD30, YPF…" style="text-transform:uppercase"/></div>';
+  }
+  if(ta==='inmueble_und'||ta==='inmueble_pct'){
+    html+='<div class="fr"><label>País</label><select id="wizPais"><option value="">Seleccioná…</option><option>Argentina</option><option>Uruguay</option><option>Paraguay</option><option>Brasil</option><option>Israel</option><option>Estados Unidos</option><option>España</option><option>Otro</option></select></div>';
+  }
+  if(cat.id==='inmuebles'){
+    html+='<div class="fr"><label>Tipo</label><div class="toggle-row"><button class="tog sel-of" id="wizInmUnd" onclick="setWizInmTipo(\'und\')"><i class="ti ti-ruler"></i> Por unidades (m², ha)</button><button class="tog" id="wizInmPct" onclick="setWizInmTipo(\'pct\')"><i class="ti ti-percentage"></i> Por porcentaje</button></div></div>';
+    html+='<div id="wizInmUndFields"><div class="fr"><label>Tipo de unidad</label><select id="wizInmUnit"><option value="m2">m²</option><option value="ha">hectáreas</option><option value="lotes">lotes</option><option value="unidades">unidades</option></select></div></div>';
+  }
+  document.getElementById('wizStep3Content').innerHTML=html;
+  renderWizSteps(3);
+  document.querySelectorAll('.step').forEach((s,i)=>{s.className='step'+(i===2?' active':'');});
+}
+function setWizInmTipo(t){
+  inmTipoWiz=t;
+  document.getElementById('wizInmUnd').className='tog'+(t==='und'?' sel-of':'');
+  document.getElementById('wizInmPct').className='tog'+(t==='pct'?' sel-of':'');
+  const uf=document.getElementById('wizInmUndFields');
+  if(uf)uf.style.display=t==='und'?'block':'none';
+}
+function saveWizard(){
+  if(!wizSubcatId)return;
+  const sc=draft.subcats.find(s=>s.id===wizSubcatId);
+  const ta=tipoActivo(sc);
+  if(ta==='bono'){ const t=document.getElementById('wizTicker'); if(t)sc.ticker=t.value.trim().toUpperCase()||null; }
+  if(ta==='inmueble_und'||ta==='inmueble_pct'){ const p=document.getElementById('wizPais'); if(p)sc.pais=p.value||null; }
+  if(sc.catId==='inmuebles'){
+    sc.inmTipo=inmTipoWiz;
+    if(inmTipoWiz==='und'){ const u=document.getElementById('wizInmUnit'); if(u)sc.inmUnit=u.value; }
+  }
+  save(); render(); closeWizard();
+  setTimeout(()=>openMovModal(wizSubcatId), 200);
+}
+
+// ── MODAL MOVIMIENTO ──────────────────────────────────────────
+// ── HELPERS for double-entry modal ───────────────────────────
+function _scOpts(selectedId){
+  // Build option groups by category
+  let opts = '<option value="_externo_in">↓ Capital externo (aporte socios)</option>';
+  opts += '<option value="_externo_out">↑ Salida del patrimonio (distribución)</option>';
+  opts += '<option value="">──────────────</option>';
+  CATS.forEach(cat=>{
+    const subs=draft.subcats.filter(s=>s.catId===cat.id);
+    if(!subs.length) return;
+    opts += '<optgroup label="'+cat.label+'">';
+    subs.forEach(s=>{
+      opts += '<option value="'+s.id+'"'+(s.id===selectedId?' selected':'')+'>'+s.nombre+'</option>';
+    });
+    opts += '</optgroup>';
+  });
+  return opts;
+}
+
+function _inferTipoTx(origenId, destinoId){
+  // Infer transaction type from origin/destination
+  if(origenId==='_externo_in') return 'aporte';
+  if(destinoId==='_externo_out') return 'distribucion';
+  const scOrig = draft.subcats.find(s=>s.id===origenId);
+  const scDest = draft.subcats.find(s=>s.id===destinoId);
+  if(!scOrig||!scDest) return 'aporte';
+  const taOrig = tipoActivo(scOrig);
+  const taDest = tipoActivo(scDest);
+  // Selling an asset → origin is asset, dest is caja/bank
+  if((taOrig==='bono'||taOrig==='inmueble_und'||taOrig==='inmueble_pct')&&(taDest==='banco')) return 'venta';
+  // Buying an asset → origin is caja/bank, dest is asset
+  if(taOrig==='banco'&&(taDest==='bono'||taDest==='inmueble_und'||taDest==='inmueble_pct')) return 'compra';
+  if(taOrig==='banco'&&taDest==='banco') return 'aporte';
+  if(taOrig==='banco'&&taDest==='sociedad') return 'aporte';
+  if(taOrig==='bono'&&taDest==='banco') return 'renta';
+  return 'aporte';
+}
+
+function openMovModal(scId){
+  currentMovSubId=scId;
+  const sc=draft.subcats.find(s=>s.id===scId);if(!sc)return;
+  const cat=catOf(sc);
+  document.getElementById('movTitle').innerHTML='<i class="ti ti-transfer" style="color:'+cat.color+'"></i> Nueva transacción';
+  // Populate origen/destino dropdowns
+  const origenSel=document.getElementById('movOrigen');
+  const destinoSel=document.getElementById('movDestino');
+  origenSel.innerHTML=_scOpts('');
+  destinoSel.innerHTML=_scOpts('');
+  // Default: current sc is destino for buys, origen for sells
+  const ta=tipoActivo(sc);
+  // Set smart defaults
+  const cajaId='sc_caja_central';
+  if(ta==='bono'||ta==='inmueble_und'||ta==='inmueble_pct'||ta==='sociedad'){
+    // Buying: origin=caja, dest=this asset
+    origenSel.value=cajaId||'_externo_in';
+    destinoSel.value=scId;
+  } else {
+    // Bank/caja: origin=external, dest=this
+    origenSel.value='_externo_in';
+    destinoSel.value=scId;
+  }
+  // Reset fields
+  ['movQty','movPrice','movTotal','movVQty','movVPrice','movSimple','movDivMonto','movNotes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('movFecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('movCompraCalc').style.display='none';
+  document.getElementById('ventaCalc').style.display='none';
+  document.getElementById('movSwapInfo').style.display='none';
+  selTipo('oficial');
+  onMovOrigenChange();
+  document.getElementById('movBg').classList.add('open');
+}
+
+function onMovOrigenChange(){
+  const origenId=document.getElementById('movOrigen').value;
+  const destinoId=document.getElementById('movDestino').value;
+  _updateTxForm(origenId, destinoId);
+}
+function onMovDestinoChange(){
+  const origenId=document.getElementById('movOrigen').value;
+  const destinoId=document.getElementById('movDestino').value;
+  _updateTxForm(origenId, destinoId);
+}
+
+function _updateTxForm(origenId, destinoId){
+  // Determine the "main" asset for form fields (the non-bank, non-caja side)
+  const scOrig=draft.subcats.find(s=>s.id===origenId);
+  const scDest=draft.subcats.find(s=>s.id===destinoId);
+  const mainSc=scDest&&tipoActivo(scDest)!=='banco'?scDest:(scOrig&&tipoActivo(scOrig)!=='banco'?scOrig:scDest);
+  if(!mainSc){
+    // Both external or bank
+    currentMovSubId = destinoId||origenId;
+    _buildTipoButtons('banco');
+    setMovTipo('aporte');
+    return;
+  }
+  currentMovSubId = mainSc.id;
+  const ta=tipoActivo(mainSc);
+  const c=calcSC(mainSc);
+  // Update CPP info
+  if(c.stock>0){
+    document.getElementById('movCppInfo').style.display='block';
+    let info='<strong>'+mainSc.nombre+'</strong> · Stock: '+fmtN(c.stock)+' '+(mainSc.inmUnit||'u.')+' · CPP: '+fmtD(c.cpp)+' · Capital: '+fmt(c.cap);
+    document.getElementById('movCppInfo').innerHTML=info;
+  } else { document.getElementById('movCppInfo').style.display='none'; }
+  // Swap info
+  const swapEl=document.getElementById('movSwapInfo');
+  if(origenId&&destinoId&&origenId!==destinoId&&origenId!=='_externo_in'&&origenId!=='_externo_out'&&destinoId!=='_externo_in'&&destinoId!=='_externo_out'){
+    const oName=scOrig?scOrig.nombre:'Origen';
+    const dName=scDest?scDest.nombre:'Destino';
+    swapEl.style.display='block';
+    swapEl.innerHTML='<i class="ti ti-transfer" style="color:#378ADD;font-size:11px"></i> <strong>'+oName+'</strong> → <strong>'+dName+'</strong>';
+  } else { swapEl.style.display='none'; }
+  // Build tipo buttons based on main asset
+  // If origen is the asset → it's a sell/renta
+  // If destino is the asset → it's a buy/aporte
+  let tipos;
+  const origenIsAsset=mainSc.id===origenId;
+  if(ta==='bono'){
+    tipos=origenIsAsset?
+      [{id:'venta',label:'Venta',icon:'ti-minus'},{id:'dividendo',label:'Renta',icon:'ti-cash'}]:
+      [{id:'compra',label:'Compra',icon:'ti-plus'}];
+  } else if(ta==='inmueble_und'){
+    tipos=origenIsAsset?[{id:'venta',label:'Venta',icon:'ti-minus'},{id:'dividendo',label:'Renta',icon:'ti-cash'}]:[{id:'compra',label:'Compra',icon:'ti-plus'}];
+  } else if(ta==='inmueble_pct'){
+    tipos=origenIsAsset?[{id:'venta',label:'Venta',icon:'ti-minus'},{id:'dividendo',label:'Renta',icon:'ti-cash'}]:[{id:'aporte',label:'Aporte',icon:'ti-plus'}];
+  } else if(ta==='sociedad'){
+    tipos=origenIsAsset?[{id:'venta',label:'Venta',icon:'ti-minus'}]:[{id:'aporte',label:'Aporte',icon:'ti-plus'}];
+  } else {
+    tipos=[{id:'aporte',label:'Entrada',icon:'ti-plus'},{id:'venta',label:'Salida',icon:'ti-minus'},{id:'interes',label:'Interés cobrado',icon:'ti-trending-up'},{id:'gasto',label:'Gasto bancario',icon:'ti-trending-down'}];
+  }
+  // Always add pasivo options
+  tipos.push({id:'contraer_deuda',label:'Contraer deuda',icon:'ti-credit-card'},{id:'pago_deuda',label:'Pagar deuda',icon:'ti-circle-check'});
+  document.getElementById('movTipoSel').style.gridTemplateColumns='repeat('+Math.min(tipos.length,3)+',1fr)';
+  document.getElementById('movTipoSel').innerHTML=tipos.map(t=>'<button class="tog" data-tid="'+t.id+'"><i class="ti '+t.icon+'"></i> '+t.label+'</button>').join('');
+  // Labels
+  if(ta==='bono'){document.getElementById('movQtyLbl').textContent='Láminas / unidades';document.getElementById('movPriceLbl').textContent='Precio unitario (USD)';}
+  else if(ta==='inmueble_und'){document.getElementById('movQtyLbl').textContent='Cantidad ('+(mainSc.inmUnit||'u.')+')';document.getElementById('movPriceLbl').textContent='Precio por '+(mainSc.inmUnit||'u.')+' (USD)';}
+  setMovTipo(tipos[0].id);
+}
+function _buildTipoButtons(ta){
+  const tipos=[{id:'aporte',label:'Entrada',icon:'ti-plus'},{id:'venta',label:'Salida',icon:'ti-minus'}];
+  document.getElementById('movTipoSel').innerHTML=tipos.map(t=>'<button class="tog" data-tid="'+t.id+'"><i class="ti '+t.icon+'"></i> '+t.label+'</button>').join('');
+}
+
+function onRentaChange(){
+  const monto=parseFloat(document.getElementById('movDivMonto').value)||0;
+  if(monto>0){
+    document.getElementById('movCompraCalc').style.display='block';
+    document.getElementById('movCompraCalc').innerHTML='Renta de <strong>'+fmt(monto)+'</strong> se acreditará como ganancia realizada';
+  } else document.getElementById('movCompraCalc').style.display='none';
+}
+function getMovTipos(ta){
+  const pasivo=[{id:'contraer_deuda',label:'Contraer deuda',icon:'ti-credit-card'},{id:'pago_deuda',label:'Pagar deuda',icon:'ti-circle-check'}];
+  if(ta==='bono') return [{id:'compra',label:'Compra',icon:'ti-plus'},{id:'venta',label:'Venta',icon:'ti-minus'},{id:'dividendo',label:'Renta',icon:'ti-cash'},...pasivo];
+  if(ta==='inmueble_und') return [{id:'compra',label:'Compra',icon:'ti-plus'},{id:'venta',label:'Venta',icon:'ti-minus'},...pasivo];
+  if(ta==='inmueble_pct') return [{id:'aporte',label:'Aporte',icon:'ti-plus'},{id:'venta',label:'Venta',icon:'ti-minus'},...pasivo];
+  if(ta==='sociedad') return [{id:'aporte',label:'Aporte',icon:'ti-plus'},{id:'dividendo',label:'Dividendo',icon:'ti-cash'},{id:'venta',label:'Venta',icon:'ti-minus'},...pasivo];
+  return [{id:'aporte',label:'Depósito',icon:'ti-plus'},{id:'venta',label:'Retiro',icon:'ti-minus'},{id:'interes',label:'Interés cobrado',icon:'ti-trending-up'},{id:'gasto',label:'Gasto bancario',icon:'ti-trending-down'},...pasivo];
+}
+function setMovTipo(t){
+  currentMovTipo=t;
+  document.querySelectorAll('#movTipoSel .tog').forEach(b=>{
+    const isSel=b.dataset.tid===t;
+    b.className='tog'+(isSel?' sel-of':'');
+  });
+  const sc=draft.subcats.find(s=>s.id===currentMovSubId);
+  const ta=tipoActivo(sc);
+  const usaTres=usaTresCampos(sc)&&(t==='compra'||t==='aporte');
+  const isPasivo=(t==='contraer_deuda'||t==='pago_deuda');
+  const isInteresGasto=(t==='interes'||t==='gasto');
+  const sc2=draft.subcats.find(s=>s.id===currentMovSubId)||{};
+  const usaTres2=usaTresCampos(sc2);
+  document.getElementById('mov-tres-campos').style.display=(!isPasivo&&!isInteresGasto&&usaTres2&&(t==='compra'||t==='aporte'))?'block':'none';
+  document.getElementById('mov-simple-campo').style.display=(!isPasivo&&!isInteresGasto&&!usaTres2&&(t==='compra'||t==='aporte'))?'block':'none';
+  document.getElementById('mov-venta-fields').style.display=(!isPasivo&&t==='venta')?'block':'none';
+  document.getElementById('mov-dividendo-fields').style.display=t==='dividendo'?'block':'none';
+  document.getElementById('mov-deuda-fields').style.display=isPasivo?'block':'none';
+  // Interes/gasto uses simple field
+  if(isInteresGasto){
+    document.getElementById('mov-simple-campo').style.display='block';
+    document.getElementById('movSimpleLbl').textContent=t==='interes'?'Monto del interés (USD)':'Monto del gasto (USD)';
+    document.getElementById('movTipoInvRow').style.display='none';
+  }
+  document.getElementById('movTipoInvRow').style.display=(t==='compra'||t==='aporte'||t==='dividendo')?'block':'none';
+  if(isPasivo){
+    document.getElementById('movDeudaLbl').textContent=t==='contraer_deuda'?'Monto de la deuda (USD)':'Monto del pago (USD)';
+  }
+  // Simple label
+  const simplEl2=document.getElementById('movSimpleLbl');
+  if(simplEl2&&sc2){
+    const ta2=tipoActivo(sc2);
+    if(ta2==='banco') simplEl2.textContent=t==='aporte'?'Monto depositado (USD)':'Monto retirado (USD)';
+    else if(ta2==='sociedad') simplEl2.textContent='Monto aportado (USD)';
+    else if(ta2==='inmueble_pct') simplEl2.textContent='Monto del aporte (USD)';
+  }
+  // Venta labels
+  if(t==='venta'){
+    document.getElementById('movVQtyLbl').textContent=usaTresCampos(sc)?'Cantidad a vender':'Monto a vender (USD)';
+  }
+  // Simple label
+  const simplEl=document.getElementById('movSimpleLbl');
+  if(simplEl){
+    if(ta==='banco') simplEl.textContent=t==='aporte'?'Monto depositado (USD)':'Monto retirado (USD)';
+    else if(ta==='sociedad') simplEl.textContent=t==='aporte'?'Monto aportado (USD)':'Monto recibido (USD)';
+    else if(ta==='inmueble_pct') simplEl.textContent=t==='aporte'?'Monto del aporte (USD)':'Monto recibido (USD)';
+  }
+}
+// Three-field calc
+function rcQty(){ const q=pf('movQty'),p=pf('movPrice'),total=pf('movTotal'); if(q>0&&p>0)sv('movTotal',q*p); else if(q>0&&total>0)sv('movPrice',total/q); showCC(); }
+function rcPrice(){ const q=pf('movQty'),p=pf('movPrice'),total=pf('movTotal'); if(p>0&&q>0)sv('movTotal',q*p); else if(p>0&&total>0)sv('movQty',total/p); showCC(); }
+function rcTotal(){ const q=pf('movQty'),p=pf('movPrice'),total=pf('movTotal'); if(total>0&&q>0)sv('movPrice',total/q); else if(total>0&&p>0)sv('movQty',total/p); showCC(); }
+function rcVenta(){ const sc=draft.subcats.find(s=>s.id===currentMovSubId); const c=calcSC(sc); const q=pf('movVQty'),p=pf('movVPrice'); const box=document.getElementById('ventaCalc'); if(q>0&&p>0&&c.stock>0){const cpp=c.cpp,costo=q*cpp,ingreso=q*p,gan=ingreso-costo;box.style.display='block';box.innerHTML='<strong>Ingreso:</strong> '+fmt(ingreso)+' · <strong>Costo CPP:</strong> '+fmt(costo)+' · <strong>Ganancia: </strong><span class="'+(gan>=0?'cg':'cl')+'">'+(gan>=0?'+':'')+fmt(gan)+'</span>';}else box.style.display='none'; }
+function showCC(){ const q=pf('movQty'),p=pf('movPrice'); if(q>0&&p>0){const sc=draft.subcats.find(s=>s.id===currentMovSubId);const c=calcSC(sc);const ns=c.stock+q,nc=c.cap+q*p,ncpp=ns>0?nc/ns:p;const box=document.getElementById('movCompraCalc');box.style.display='block';box.innerHTML='<strong>Monto:</strong> '+fmt(q*p)+' · <strong>Stock resultante:</strong> '+fmtN(ns)+' · <strong>Nuevo CPP:</strong> '+fmtD(ncpp);}else document.getElementById('movCompraCalc').style.display='none'; }
+function pf(id){return parseFloat(document.getElementById(id).value)||0;}
+function sv(id,v){const el=document.getElementById(id);if(el)el.value=parseFloat(v.toFixed(8));}
+function closeMovModal(){document.getElementById('movBg').classList.remove('open');}
+function saveMov(){
+  const sc=draft.subcats.find(s=>s.id===currentMovSubId);if(!sc)return;
+  const t=currentMovTipo, ta=tipoActivo(sc);
+  const origenId=document.getElementById('movOrigen').value;
+  const destinoId=document.getElementById('movDestino').value;
+  const fecha=document.getElementById('movFecha').value||new Date().toISOString().split('T')[0];
+  const notes=document.getElementById('movNotes').value.trim();
+  const txId='tx_'+Date.now();
+
+  // Build main movement
+  let mov={id:'m_'+Date.now(),tipo:t,_txId:txId};
+  if(t==='compra'||t==='aporte'){
+    if(usaTresCampos(sc)){
+      const q=pf('movQty'),p=pf('movPrice'),total=pf('movTotal');
+      if(q<=0||(p<=0&&total<=0)){alert('Completá cantidad y precio, o cantidad y monto total.');return;}
+      mov.qty=q; mov.price=p>0?p:(total>0&&q>0?total/q:0);
+      if(mov.price<=0){alert('No se pudo calcular el precio unitario.');return;}
+    } else {
+      const m=pf('movSimple');if(m<=0){alert('Ingresá el monto.');return;}
+      mov.qty=1; mov.price=m;
+    }
+    mov.tipo_inv=tipoSel;
+  } else if(t==='interes'||t==='gasto'){
+    const m=pf('movSimple');if(m<=0){alert('Ingresá el monto.');return;}
+    mov.qty=1; mov.price=m; mov.monto=m;
+  } else if(t==='contraer_deuda'||t==='pago_deuda'){
+    const m=pf('movSimple')||pf('movDeudaMonto');if(m<=0){alert('Ingresá el monto.');return;}
+    mov.qty=1; mov.price=m; mov.monto=m;
+  } else if(t==='venta'){
+    if(usaTresCampos(sc)){
+      const q=pf('movVQty'),p=pf('movVPrice');if(q<=0||p<=0){alert('Completá cantidad y precio de venta.');return;}
+      mov.qty=q; mov.price=p;
+    } else {
+      const m=pf('movSimple')||pf('movVQty');if(m<=0){alert('Ingresá el monto.');return;}
+      mov.qty=1; mov.price=m;
+    }
+  } else if(t==='dividendo'){
+    const m=pf('movDivMonto');if(m<=0){alert('Ingresá el monto.');return;}
+    mov.monto=m; mov.qty=1; mov.price=m;
+  }
+  mov.fecha=fecha; mov.notes=notes;
+
+  // Compute monto for counterpart
+  const monto=mov.qty*(mov.price||0)||mov.monto||0;
+
+  // The main movement always belongs to the asset's own subcat (sc === currentMovSubId),
+  // regardless of whether that asset was selected as Origen or Destino in the form.
+  // The counterpart goes to whichever side is NOT the asset.
+  const assetIsOrigen = origenId===currentMovSubId;
+  const otherScId = assetIsOrigen ? destinoId : origenId;
+
+  // Add main movement to the asset's own subcategory
+  mov._contrapartida_sc=otherScId;
+  sc.movimientos.push(mov);
+
+  // Add counterpart movement to the other subcategory
+  // Interés/Gasto bancario are self-contained (no counterpart, ever).
+  // Also skip if origen and destino are the same account (nothing to mirror).
+  const necesitaContrapartida = t!=='interes' && t!=='gasto' && otherScId!==currentMovSubId;
+  if(necesitaContrapartida&&otherScId&&otherScId!=='_externo_in'&&otherScId!=='_externo_out'){
+    const origSc=draft.subcats.find(s=>s.id===otherScId);
+    if(origSc){
+      let contrap={id:'m_'+(Date.now()+1),_txId:txId,_contrapartida_sc:currentMovSubId,fecha,notes:notes||''};
+      // Determine counterpart type
+      if(t==='compra'||t==='aporte'){
+        // Origin loses money (salida)
+        contrap.tipo='venta'; contrap.qty=1; contrap.price=monto;
+        contrap.notes=(notes?notes+' · ':'')+'→ '+sc.nombre;
+      } else if(t==='venta'){
+        // Origin receives money (entrada)
+        contrap.tipo='aporte'; contrap.qty=1; contrap.price=monto;
+        contrap.tipo_inv=tipoSel;
+        contrap.notes=(notes?notes+' · ':'')+'← '+sc.nombre;
+      } else if(t==='dividendo'){
+        // Renta: origin (bono) pays, counterpart receives
+        contrap.tipo='aporte'; contrap.qty=1; contrap.price=monto;
+        contrap.tipo_inv=tipoSel;
+        contrap.notes=(notes?notes+' · ':'')+'Renta ← '+sc.nombre;
+      } else if(t==='pago_deuda'){
+        contrap.tipo='venta'; contrap.qty=1; contrap.price=monto;
+        contrap.notes=(notes?notes+' · ':'')+'Pago deuda → '+sc.nombre;
+      } else if(t==='contraer_deuda'){
+        contrap.tipo='aporte'; contrap.qty=1; contrap.price=monto;
+        contrap.notes=(notes?notes+' · ':'')+'Deuda ← '+sc.nombre;
+      }
+      origSc.movimientos.push(contrap);
+    }
+  }
+
+  save(); render(); closeMovModal();
+  showToast('Transacción guardada');
+}
+
+// ── FETCH PRECIO ─────────────────────────────────────────────
+async function fetchPrice(scId){
+  const sc=draft.subcats.find(s=>s.id===scId);if(!sc||!sc.ticker)return;
+  const ticker=sc.ticker.toUpperCase().replace('.BA','');
+  showToast('Buscando precio de '+ticker+' en Rava…');
+  try{
+    // Fetch Rava page via allorigins — price is in the page title: "AL35D $80,80 (-0,07%) | ..."
+    const url='https://www.rava.com/perfil/'+ticker;
+    // Try multiple proxies for reliability
+    let html='';
+    const proxies=[
+      u=>'https://api.allorigins.win/get?url='+encodeURIComponent(u),
+      u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u),
+    ];
+    for(const proxy of proxies){
+      try{
+        const r=await Promise.race([fetch(proxy(url)),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),5000))]);
+        const d=await r.json();
+        html=d.contents||d||'';
+        if(html.length>100) break;
+      }catch(e){ continue; }
+    }
+    // Extract from title tag
+    const titleMatch=html.match(/<title>[^$]*\$([\d,\.]+)/i);
+    // Also try from page content
+    const contentMatch=html.match(/class="[^"]*precio[^"]*"[^>]*>([\d,\.]+)/i);
+    const rawPrice=(titleMatch&&titleMatch[1])||(contentMatch&&contentMatch[1]);
+    if(rawPrice){
+      const price=parseFloat(rawPrice.replace(',','.'));
+      if(price>0){
+        sc._precioMercado=price;
+        save();render();
+        showToast(ticker+': U$S '+fmtD(price));
+        return;
+      }
+    }
+    // Fallback: don-cap.com
+    const url2='https://don-cap.com/Bursatil/Especie/'+ticker+'/MERVAL/Inmed.';
+    const res2=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url2));
+    const data2=await res2.json();
+    const html2=data2.contents||'';
+    const match2=html2.match(/U\$S\s*([\d,\.]+)/);
+    if(match2){
+      const price2=parseFloat(match2[1].replace(',','.'));
+      if(price2>0){
+        sc._precioMercado=price2;
+        save();render();
+        showToast(ticker+': U$S '+fmtD(price2)+' (don-cap)');
+        return;
+      }
+    }
+    showToast('No se pudo obtener — ingresalo manualmente');
+    precioManual(scId);
+  }catch(e){
+    showToast('Error — ingresalo manualmente');
+    precioManual(scId);
+  }
+}
+async function _fetchPriceOLD(scId){
+  const sc=draft.subcats.find(s=>s.id===scId);if(!sc||!sc.ticker)return;
+  const ticker=sc.ticker.toUpperCase().replace('.BA','');
+  showToast('Buscando precio de '+ticker+'…');
+  
+  // Try BYMA open data via corsproxy.io
+  const sources=[
+    // Source 1: BYMA bonds JSON via corsproxy
+    async ()=>{
+      const url='https://corsproxy.io/?url='+encodeURIComponent('https://open.bymadata.com.ar/assets/json/bonds.json');
+      const r=await fetch(url);
+      const arr=await r.json();
+      const item=arr.find(b=>(b.descripcionAbreviada||b.symbol||'').toUpperCase()===ticker);
+      if(item){
+        const p=item.ultimoPrecio||item.precio||item.last||item.cierre;
+        if(p&&p>0) return parseFloat(p)/100; // BYMA prices are in cents
+      }
+      return null;
+    },
+    // Source 2: allorigins + BYMA
+    async ()=>{
+      const url='https://api.allorigins.win/get?url='+encodeURIComponent('https://open.bymadata.com.ar/assets/json/bonds.json');
+      const r=await fetch(url);
+      const data=await r.json();
+      const arr=JSON.parse(data.contents);
+      const item=arr.find(b=>(b.descripcionAbreviada||b.symbol||'').toUpperCase()===ticker);
+      if(item){
+        const p=item.ultimoPrecio||item.precio||item.last||item.cierre;
+        if(p&&p>0) return parseFloat(p)/100;
+      }
+      return null;
+    },
+    // Source 3: Yahoo Finance (for non-Argentine bonds)
+    async ()=>{
+      const yticker=sc.ticker.includes('.')?sc.ticker:sc.ticker+'.BA';
+      const url='https://query1.finance.yahoo.com/v8/finance/chart/'+yticker+'?interval=1d&range=1d';
+      const r=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url));
+      const data=await r.json();
+      const parsed=JSON.parse(data.contents);
+      const p=parsed?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      return (p&&p>0)?p:null;
+    }
+  ];
+  
+  for(const source of sources){
+    try{
+      const price=await source();
+      if(price&&price>0){
+        sc._precioMercado=price;
+        save();render();
+        showToast(ticker+': U$S '+fmtD(price));
+        return;
+      }
+    }catch(e){ continue; }
+  }
+  
+  // All sources failed — ask manually
+  showToast('No se pudo obtener precio automático');
+  precioManual(scId);
+}
+
+// Auto-fetch prices on load for all subcats with ticker
+async function autoFetchPrices(){
+  const bonos=draft.subcats.filter(sc=>sc.ticker&&sc.catId==='bonos');
+  for(const sc of bonos){
+    await fetchPrice(sc.id);
+    await new Promise(r=>setTimeout(r,500)); // small delay between requests
+  }
+}
+function precioManual(scId){
+  const sc=draft.subcats.find(s=>s.id===scId);if(!sc)return;
+  const p=prompt('Precio de mercado para "'+sc.nombre+'" ('+( sc.ticker||'sin ticker')+') en USD:');
+  if(p&&parseFloat(p)>0){sc._precioMercado=parseFloat(p);save();render();showToast('Precio actualizado');}
+}
+
+// ── EDITAR SUBCATEGORÍA ───────────────────────────────────────
+function openEditSub(scId){
+  const sc=draft.subcats.find(s=>s.id===scId);if(!sc)return;
+  currentEditSubId=scId;
+  const ta=tipoActivo(sc);
+  document.getElementById('esName').value=sc.nombre;
+  document.getElementById('es-bono-fields').style.display=ta==='bono'?'block':'none';
+  document.getElementById('es-inmueble-fields').style.display=(ta==='inmueble_und'||ta==='inmueble_pct')?'block':'none';
+  document.getElementById('es-inmueble-und-extra').style.display=ta==='inmueble_und'?'block':'none';
+  if(ta==='bono') document.getElementById('esTicker').value=sc.ticker||'';
+  if(ta==='inmueble_und'||ta==='inmueble_pct'){document.getElementById('esPais').value=sc.pais||'';}
+  if(ta==='inmueble_und'){document.getElementById('esInmUnit').value=sc.inmUnit||'m2';}
+  document.getElementById('esNotas').value = sc.notas||'';
+  document.getElementById('btnDelSub').style.display=sc.movimientos.length===0?'inline-flex':'none';
+  document.getElementById('editSubBg').classList.add('open');
+}
+function saveEditSub(){
+  const sc=draft.subcats.find(s=>s.id===currentEditSubId);if(!sc)return;
+  const nombre=document.getElementById('esName').value.trim();
+  if(!nombre){document.getElementById('esName').focus();return;}
+  sc.nombre=nombre;
+  const ta=tipoActivo(sc);
+  if(ta==='bono') sc.ticker=document.getElementById('esTicker').value.trim().toUpperCase()||null;
+  if(ta==='inmueble_und'||ta==='inmueble_pct') sc.pais=document.getElementById('esPais').value||null;
+  if(ta==='inmueble_und') sc.inmUnit=document.getElementById('esInmUnit').value;
+  sc.notas = document.getElementById('esNotas').value.trim()||null;
+  save();render();document.getElementById('editSubBg').classList.remove('open');showToast('Actualizado');
+}
+function deleteSub(){
+  const sc=draft.subcats.find(s=>s.id===currentEditSubId);if(!sc)return;
+  if(!confirm('¿Eliminar "'+sc.nombre+'"? Esta acción no se puede deshacer.'))return;
+  ter(s=>s.id!==currentEditSubId);
+  save();render();document.getElementById('editSubBg').classList.remove('open');showToast('Eliminado');
+}
+
+// ── EDITAR / ELIMINAR MOVIMIENTO ──────────────────────────────
+function ultimoCierreFecha(){
+  if(!history.length)return null;
+  return history.reduce((max,h)=>h.fecha>max?h.fecha:max, history[0].fecha);
+}
+function bloqueadoPorCierre(fechaMov){
+  const uc=ultimoCierreFecha();
+  if(!uc)return false;
+  return fechaMov<=uc;
+}
+function avisoBloqueoCierre(fechaMov){
+  const uc=ultimoCierreFecha();
+  alert('Este movimiento es del '+fmtFecha(fechaMov)+', anterior o igual al último cierre ('+fmtFecha(uc)+').\n\nLos movimientos ya incluidos en un cierre no se pueden editar ni eliminar, para no alterar la foto histórica.\n\nSi necesitás corregirlo, cargá un movimiento nuevo con la fecha de hoy explicando el ajuste (ej. "Corrección — faltaban U$S 500 en la carga original").');
+}
+function openEditMov(scId, movId){
+  const sc=draft.subcats.find(s=>s.id===scId);if(!sc)return;
+  const m=sc.movimientos.find(x=>x.id===movId);if(!m)return;
+  if(bloqueadoPorCierre(m.fecha)){avisoBloqueoCierre(m.fecha);return;}
+  currentEditMovSubId=scId; currentEditMovId=movId;
+  const ta=tipoActivo(sc);
+  const labels={compra:'Compra',venta:'Venta',aporte:'Aporte',dividendo:'Renta'};
+  document.getElementById('emTipoLabel').textContent=labels[m.tipo]||m.tipo;
+  const usaTres=(ta==='bono'||ta==='inmueble_und')&&m.tipo!=='dividendo';
+  document.getElementById('em-tres-campos').style.display=usaTres?'block':'none';
+  document.getElementById('em-simple-campo').style.display=!usaTres?'block':'none';
+  if(usaTres){
+    document.getElementById('emQtyLbl').textContent=ta==='bono'?'Láminas':'Cantidad ('+(sc.inmUnit||'u.')+')';
+    document.getElementById('emQty').value=m.qty||'';
+    document.getElementById('emPrice').value=m.price||'';
+    document.getElementById('emTotal').value=(m.qty&&m.price)?parseFloat((m.qty*m.price).toFixed(8)):'';
+  } else {
+    const sl={aporte:'Monto aportado (USD)',venta:'Monto recibido (USD)',dividendo:'Monto del dividendo (USD)'};
+    document.getElementById('emSimpleLbl').textContent=sl[m.tipo]||'Monto (USD)';
+    document.getElementById('emSimple').value=m.price||m.monto||'';
+  }
+  document.getElementById('emFecha').value=m.fecha||new Date().toISOString().split('T')[0];
+  document.getElementById('emNotes').value=m.notes||'';
+  document.getElementById('editMovBg').classList.add('open');
+}
+function rcEditQty(){ const q=pf('emQty'),p=pf('emPrice'),total=pf('emTotal'); if(q>0&&p>0)sv('emTotal',q*p); else if(q>0&&total>0)sv('emPrice',total/q); }
+function rcEditPrice(){ const q=pf('emQty'),p=pf('emPrice'),total=pf('emTotal'); if(p>0&&q>0)sv('emTotal',q*p); else if(p>0&&total>0)sv('emQty',total/p); }
+function rcEditTotal(){ const q=pf('emQty'),p=pf('emPrice'),total=pf('emTotal'); if(total>0&&q>0)sv('emPrice',total/q); else if(total>0&&p>0)sv('emQty',total/p); }
+function saveEditMov(){
+  const sc=draft.subcats.find(s=>s.id===currentEditMovSubId);if(!sc)return;
+  const idx=sc.movimientos.findIndex(x=>x.id===currentEditMovId);if(idx<0)return;
+  const m=sc.movimientos[idx], ta=tipoActivo(sc);
+  const usaTres=(ta==='bono'||ta==='inmueble_und')&&m.tipo!=='dividendo';
+  if(usaTres){
+    const q=pf('emQty'),p=pf('emPrice'),total=pf('emTotal');
+    if(q<=0||(p<=0&&total<=0)){alert('Completá cantidad y precio, o cantidad y monto total.');return;}
+    m.qty=q; m.price=p>0?p:(total>0&&q>0?total/q:p);
+  } else {
+    const v=pf('emSimple');if(v<=0){alert('Ingresá un monto válido.');return;}
+    m.qty=1; m.price=v; if(m.tipo==='dividendo')m.monto=v;
+  }
+  m.fecha=document.getElementById('emFecha').value||m.fecha;
+  m.notes=document.getElementById('emNotes').value.trim();
+  save();render();document.getElementById('editMovBg').classList.remove('open');showToast('Movimiento actualizado');
+}
+function deleteMov(scId, movId){
+  const sc=draft.subcats.find(s=>s.id===scId);if(!sc)return;
+  const m=sc.movimientos.find(x=>x.id===movId);if(!m)return;
+  if(bloqueadoPorCierre(m.fecha)){avisoBloqueoCierre(m.fecha);return;}
+  const labels={compra:'Compra',venta:'Venta',aporte:'Aporte',dividendo:'Renta'};
+  if(!confirm('¿Eliminar este movimiento ('+labels[m.tipo]+' del '+fmtFecha(m.fecha)+')? El CPP se recalculará automáticamente.'))return;
+  sc.movimientos=sc.movimientos.filter(x=>x.id!==movId);
+  save();render();showToast('Movimiento eliminado — CPP recalculado');
+}
+
+// ── BORRADOR / CIERRE ─────────────────────────────────────────
+function guardarBorrador(){draft.estado='borrador';draft.lastSaved=new Date().toISOString();save();render();showToast('Borrador guardado');}
+function abrirCierre(){
+  const tot=totalAll(), ganR=totalGanR(), ganNR=totalGanNR();
+  document.getElementById('closeInfoBox').innerHTML='<strong>Patrimonio total:</strong> '+fmt(tot)+'<br><strong>Activos:</strong> '+draft.subcats.length+'<br><strong>Ganancia realizada:</strong> '+fmt(ganR)+'<br><strong>No realizada (bonos):</strong> '+fmt(ganNR);
+  document.getElementById('closeFecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('closeDesc').value='';
+  document.getElementById('closeBg').classList.add('open');
+}
+function confirmarCierre(){
+  const fecha=document.getElementById('closeFecha').value;
+  if(!fecha){alert('Indicá la fecha del estado.');return;}
+  const desc=document.getElementById('closeDesc').value.trim();
+  history.push({id:'h_'+Date.now(),fecha,desc,subcats:JSON.parse(JSON.stringify(draft.subcats)),cerradoEn:totalPatrNeto(),closedAt:new Date().toISOString()});
+  draft.estado='definitivo'; draft.lastSaved=new Date().toISOString();
+  save(); document.getElementById('closeBg').classList.remove('open'); render();
+  showToast('Estado definitivo guardado al '+fmtFecha(fecha));
+  setTimeout(()=>{if(confirm('Estado guardado. ¿Iniciás un nuevo borrador con los mismos datos?')){draft={subcats:JSON.parse(JSON.stringify(draft.subcats)),estado:'borrador',lastSaved:new Date().toISOString()};save();render();showTab('detalle');}},400);
+}
+
+// ── HISTORIAL ─────────────────────────────────────────────────
+function renderHistorial(){
+  const el=document.getElementById('histList');
+  if(!history.length){el.innerHTML='<div class="empty-state"><i class="ti ti-clock-history"></i><div>Sin estados definitivos aún</div></div>';return;}
+  const sorted=[...history].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const cards=sorted.map(h=>{
+    const d=document.createElement('div');
+    d.className='hist-card';
+    d.innerHTML='<div class="hist-icon"><i class="ti ti-lock"></i></div><div class="hist-info"><div class="hist-fecha">'+fmtFecha(h.fecha)+'</div><div class="hist-sub">'+(h.desc||'Estado definitivo')+' · '+h.subcats.length+' activos</div></div><div class="hist-amt">'+fmt(totalAll(h.subcats))+'</div><div class="hist-actions"><button class="icon-btn hist-ver-btn" data-hid="'+h.id+'"><i class="ti ti-eye"></i></button><button class="icon-btn hist-car-btn" data-hid="'+h.id+'"><i class="ti ti-copy"></i></button></div>';
+    return d.outerHTML;
+  }).join('');
+  el.innerHTML='<div class="hist-list">'+cards+'</div>';
+}
+function verHistorico(id){
+  const h=history.find(x=>x.id===id);if(!h)return;
+  const tot=totalPatrNeto(h.subcats), ganR=totalGanR(h.subcats), ganNR=totalGanNR(h.subcats);
+  document.getElementById('viewHistTitle').textContent='Estado al '+fmtFecha(h.fecha)+(h.desc?' — '+h.desc:'');
+  let html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.25rem"><div class="mc"><div class="lbl">Total</div><div class="val">'+fmt(tot)+'</div></div><div class="mc"><div class="lbl">Gan. realizada</div><div class="val" style="color:#0a6040">'+fmt(ganR)+'</div></div><div class="mc"><div class="lbl">No realizada</div><div class="val" style="color:#e0a020">'+fmt(ganNR)+'</div></div></div>';
+  CATS.forEach(cat=>{
+    const subs=h.subcats.filter(s=>s.catId===cat.id);if(!subs.length)return;
+    html+='<div style="font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.06em;margin:1rem 0 .5rem;padding-top:.75rem;border-top:1px solid #f0f0f0">'+cat.label+'</div>';
+    subs.forEach(sc=>{const c=calcSC(sc);html+='<div style="display:flex;gap:8px;padding:5px 0;align-items:center"><span style="flex:1;font-size:12px;color:#555">'+sc.nombre+'</span><span style="font-size:12px;font-weight:700">'+fmt(valPatr(sc))+'</span></div>';});
+  });
+  // Add pasivo line if any
+  const totPasH=totalPasivos(h.subcats);
+  const totActH=totalAll(h.subcats);
+  if(totPasH>0){
+    html+='<div style="margin-top:1rem;padding-top:.75rem;border-top:2px solid #eee">';
+    html+='<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px"><span style="color:#888">Total activos</span><span>'+fmt(totActH)+'</span></div>';
+    html+='<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px;color:#c0392b"><span>Pasivos</span><span>−'+fmt(totPasH)+'</span></div>';
+    html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:14px;font-weight:700;border-top:1px solid #eee;margin-top:4px"><span>Patrimonio neto</span><span style="color:#0a6040">'+fmt(totActH-totPasH)+'</span></div>';
+    html+='</div>';
+  }
+  document.getElementById('viewHistContent').innerHTML=html;
+  document.getElementById('viewHistBg').classList.add('open');
+}
+function cargarComoNuevo(id){
+  const h=history.find(x=>x.id===id);if(!h)return;
+  if(!confirm('Cargar el estado del '+fmtFecha(h.fecha)+' como nuevo borrador. El borrador actual será reemplazado. ¿Continuar?'))return;
+  draft={subcats:JSON.parse(JSON.stringify(h.subcats)),estado:'borrador',lastSaved:new Date().toISOString()};
+  save();render();showTab('detalle');showToast('Borrador cargado');
+}
+
+// ── COMPARAR ──────────────────────────────────────────────────
+function renderCompSelectors(){
+  const sorted=[...history].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const opts=sorted.map(h=>'<option value="'+h.id+'">'+fmtFecha(h.fecha)+(h.desc?' — '+h.desc:'')+'</option>').join('');
+  document.getElementById('cmpA').innerHTML='<option value="">— Sin estado —</option>'+opts;
+  document.getElementById('cmpB').innerHTML='<option value="">— Sin estado —</option>'+opts;
+  if(sorted.length>=2){document.getElementById('cmpA').value=sorted[1].id;document.getElementById('cmpB').value=sorted[0].id;}
+  else if(sorted.length===1)document.getElementById('cmpB').value=sorted[0].id;
+  renderComp();
+}
+function renderComp(){
+  const idA=document.getElementById('cmpA').value, idB=document.getElementById('cmpB').value;
+  const el=document.getElementById('compContent');
+  if(!idA||!idB||idA===idB){el.innerHTML='<div class="empty-state"><i class="ti ti-arrows-diff"></i>Seleccioná dos estados distintos</div>';return;}
+  const hA=history.find(x=>x.id===idA), hB=history.find(x=>x.id===idB);if(!hA||!hB)return;
+  const tA=totalPatrNeto(hA.subcats), tB=totalPatrNeto(hB.subcats), delta=tB-tA, deltaPct=tA?((tB-tA)/tA*100):0;
+  const capA=hA.subcats.reduce((s,sc)=>s+calcSC(sc).cap,0), capB=hB.subcats.reduce((s,sc)=>s+calcSC(sc).cap,0);
+  const ganRA=totalGanR(hA.subcats), ganRB=totalGanR(hB.subcats);
+  const ganNRA=totalGanNR(hA.subcats), ganNRB=totalGanNR(hB.subcats);
+  const cls=d=>d>0?'delta-pos':d<0?'delta-neg':'delta-neu';
+  const sf=d=>(d>=0?'+':'')+SYM[cur]+Math.abs(Math.round(d)).toLocaleString('es-AR');
+  const pf2=p=>(p>=0?'+':'')+p.toFixed(1)+'%';
+  let html='<div class="comp-summary">'+
+    '<div class="comp-mc" style="background:'+(delta>=0?'#e6f5ee':'#fdf0ef')+';border-color:'+(delta>=0?'#1D9E75':'#e74c3c')+'"><div class="lbl" style="color:'+(delta>=0?'#0a6040':'#c0392b')+'">Variación total</div><div class="val" style="color:'+(delta>=0?'#0a6040':'#c0392b')+'">'+sf(delta)+'</div><div class="sub" style="color:'+(delta>=0?'#1D9E75':'#e74c3c')+'">'+pf2(deltaPct)+'</div></div>'+
+    '<div class="comp-mc" style="background:#f0f0ff;border-color:#aaa"><div class="lbl" style="color:#555">Capital nuevo aportado</div><div class="val" style="color:#333">'+sf(capB-capA)+'</div><div class="sub" style="color:#888">no es ganancia</div></div>'+
+    '<div class="comp-mc" style="background:#fff4e0;border-color:#e0a020"><div class="lbl" style="color:#8a5a00">Revalorización bonos</div><div class="val" style="color:#8a5a00">'+sf(ganNRB-ganNRA)+'</div><div class="sub" style="color:#e0a020">no realizada</div></div>'+
+    '<div class="comp-mc" style="background:#e6f5ee;border-color:#1D9E75"><div class="lbl" style="color:#0a6040">Ganancia realizada nueva</div><div class="val" style="color:#0a6040">'+sf(ganRB-ganRA)+'</div><div class="sub" style="color:#1D9E75">ventas + dividendos</div></div>'+
+    '<div class="comp-mc" style="background:#f5f5ff;border-color:#7F77DD"><div class="lbl" style="color:#4a3aaa">Base ('+fmtFecha(hA.fecha)+')</div><div class="val" style="color:#4a3aaa">'+fmt(tA)+'</div></div>'+
+    '<div class="comp-mc" style="background:#f0f8ff;border-color:#378ADD"><div class="lbl" style="color:#1a4fa0">Comparado ('+fmtFecha(hB.fecha)+')</div><div class="val" style="color:#1a4fa0">'+fmt(tB)+'</div></div>'+
+  '</div>';
+  html+='<div style="overflow-x:auto"><table class="comp-table"><thead><tr><th style="width:32%">Activo</th><th style="text-align:right;width:17%">'+fmtFecha(hA.fecha)+'</th><th style="text-align:right;width:17%">'+fmtFecha(hB.fecha)+'</th><th style="text-align:right;width:14%">Cap. nuevo</th><th style="text-align:right;width:14%">Gan. real.</th><th style="width:6%"></th></tr></thead><tbody>';
+  CATS.forEach(cat=>{
+    const sA=hA.subcats.filter(s=>s.catId===cat.id), sB=hB.subcats.filter(s=>s.catId===cat.id);
+    const allIds=[...new Set([...sA.map(s=>s.id),...sB.map(s=>s.id)])];if(!allIds.length)return;
+    html+='<tr class="grp-row"><td colspan="6">'+cat.label+'</td></tr>';
+    allIds.forEach(sid=>{
+      const a=sA.find(s=>s.id===sid), b=sB.find(s=>s.id===sid);
+      const vA=a?valPatr(a):0, vB=b?valPatr(b):0;
+      const cA=a?calcSC(a):{cap:0,ganR:0}, cB=b?calcSC(b):{cap:0,ganR:0};
+      const capN=cB.cap-cA.cap, ganN=cB.ganR-cA.ganR, vD=vB-vA;
+      const bW=Math.min(100,Math.round(Math.abs(vD)/Math.max(1,Math.max(tA,tB))*200));
+      html+='<tr><td style="padding-left:14px;font-size:12px">'+(a||b).nombre+'</td><td style="text-align:right;font-size:12px">'+(vA?fmt(vA):'—')+'</td><td style="text-align:right;font-size:12px">'+(vB?fmt(vB):'—')+'</td><td style="text-align:right;font-size:11px" class="'+cls(capN)+'">'+(capN?sf(capN):'—')+'</td><td style="text-align:right;font-size:11px" class="'+cls(ganN)+'">'+(ganN?sf(ganN):'—')+'</td><td><span class="delta-bar-wrap"><span class="delta-bar" style="width:'+bW+'%;background:'+(vD>=0?'#1D9E75':'#e74c3c')+'"></span></span></td></tr>';
+    });
+  });
+  html+='<tr class="tot-row"><td style="font-weight:700">Total activos</td><td style="text-align:right">'+fmt(tA)+'</td><td style="text-align:right">'+fmt(tB)+'</td><td style="text-align:right" class="'+cls(capB-capA)+'">'+sf(capB-capA)+'</td><td style="text-align:right" class="'+cls(ganRB-ganRA)+'">'+sf(ganRB-ganRA)+'</td><td></td></tr></tbody></table></div>';
+  el.innerHTML=html;
+}
+
+// ── COMPARTIR ─────────────────────────────────────────────────
+function renderPreview(){
+  const tot=totalAll(), ganR=totalGanR();
+  let rows='';
+  CATS.forEach(cat=>{
+    const subs=draft.subcats.filter(s=>s.catId===cat.id);if(!subs.length)return;
+    rows+='<tr class="grp-row"><td colspan="5">'+cat.label+'</td></tr>';
+    subs.forEach(sc=>{
+      const c=calcSC(sc), vp=valPatr(sc);
+      const stock=(tipoActivo(sc)==='bono'||tipoActivo(sc)==='inmueble_und')?fmtN(c.stock)+' '+(sc.inmUnit||'u.'):'—';
+      const vn=valPatrNeto(sc);
+      const pasivoSc=c.pasivoPendiente||0;
+      rows+='<tr><td style="padding-left:14px;font-size:12px">'+sc.nombre+'</td>'+
+        '<td style="text-align:right;font-size:12px">'+fmt(vp)+(pasivoSc>0?'<div style="font-size:10px;color:#c0392b">Deuda: -'+fmt(pasivoSc)+'</div>':'')+'</td>'+
+        '<td style="text-align:right;font-size:12px;'+(pasivoSc>0?'color:#0a6040;font-weight:700':'')+'">'+fmt(vn)+'</td>'+
+        '<td style="font-size:11px;color:'+(c.ganR>=0?'#0a6040':'#c0392b')+'">'+fmt(c.ganR)+'</td>'+
+        '<td style="font-size:11px;color:#888">'+stock+'</td></tr>';
+    });
+  });
+  const previewPasivos=totalPasivos();
+  const previewNeto=tot-previewPasivos;
+  document.getElementById('previewTbl').innerHTML='<thead><tr><th style="width:28%">Activo</th><th style="width:18%;text-align:right">Valor bruto ('+cur+')</th><th style="width:18%;text-align:right">Val. neto</th><th style="width:18%">Gan. realizada</th><th style="width:18%">Stock</th></tr></thead><tbody>'+rows+'</tbody><tfoot>'+
+    (previewPasivos>0?'<tr><td colspan="2" style="text-align:right;font-size:11px;color:#888">Total activos:</td><td style="text-align:right;font-size:11px;color:#888">'+fmt(tot)+'</td><td></td><td></td></tr>'+
+    '<tr><td colspan="2" style="text-align:right;font-size:11px;color:#c0392b">Total pasivos:</td><td style="text-align:right;font-size:11px;color:#c0392b">-'+fmt(previewPasivos)+'</td><td></td><td></td></tr>':'')+'<tr class="tot-row"><td><strong>Patrimonio neto</strong></td><td></td><td style="text-align:right;color:#0a6040"><strong>'+fmt(previewNeto)+'</strong></td><td style="color:'+(ganR>=0?'#0a6040':'#c0392b')+'">'+fmt(ganR)+'</td><td></td></tr></tfoot>';
+}
+function copyText(){
+  const tot=totalAll(), ganR=totalGanR();
+  const lines=['ESTADO PATRIMONIAL PERSONAL','='.repeat(48),''];
+  CATS.forEach(cat=>{
+    const subs=draft.subcats.filter(s=>s.catId===cat.id);if(!subs.length)return;
+    lines.push(cat.label.toUpperCase());
+    subs.forEach(sc=>{const c=calcSC(sc);lines.push('  · '+sc.nombre+': '+fmt(valPatr(sc))+' | Cap.inv: '+fmt(c.cap)+' | Gan.real: '+fmt(c.ganR));});
+    lines.push('');
+  });
+  lines.push('='.repeat(48));
+  lines.push('TOTAL: '+fmt(tot));
+  lines.push('GANANCIA REALIZADA: '+fmt(ganR));
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast('Copiado')).catch(()=>alert('Usá Chrome o Firefox.'));
+}
+
+// ── TOAST ─────────────────────────────────────────────────────
+function showToast(msg){let t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:72px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:9px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:999;transition:opacity .3s;pointer-events:none';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',2800);}
+
+
+// ══════════════════════════════════════════════════════════════
+// TRASPASO, DISTRIBUCIÓN Y RENDIMIENTO
+// ══════════════════════════════════════════════════════════════
+
+// ── PATCH showTab ─────────────────────────────────────────────
+const _showTabOrig = showTab;
+showTab = function(t){
+  const allTabs = ['resumen','detalle','historial','comparar','rendimiento','compartir'];
+  allTabs.forEach((tab,i)=>{
+    const btn = document.querySelector('.tabs').children[i];
+    if(btn) btn.classList.toggle('active', tab===t);
+    const sec = document.getElementById('tab-'+tab);
+    if(sec) sec.classList.toggle('active', tab===t);
+  });
+  if(t==='resumen') renderChart();
+  if(t==='historial') renderHistorial();
+  if(t==='comparar') renderCompSelectors();
+  if(t==='rendimiento') renderRendimiento();
+  if(t==='compartir') renderPreview();
+};
+
+// ── PATCH calcSC to handle distribucion ──────────────────────
+calcSC = function(sc){
+  const ta = sc.tipo_activo || 'estandar';
+  let stock=0, cap=0, ganR=0, distribuido=0, totalAportado=0, totalRecuperado=0, pasivoPendiente=0, totalDeudaPagada=0;
+  const movs=[...sc.movimientos].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  for(const m of movs){
+    if(m.tipo==='compra'||m.tipo==='aporte'){
+      const monto=(m.qty||0)*(m.price||0);
+      stock+=m.qty||0; cap+=monto; totalAportado+=monto;
+      m._cpp=stock>0?cap/stock:(m.price||0);
+    } else if(m.tipo==='interes'){
+      // Interest earned: increases capital AND is realized gain
+      const monto=m.monto||(m.price||0);
+      cap+=monto; stock+=monto; ganR+=monto; m._gan=monto;
+    } else if(m.tipo==='gasto'){
+      // Bank fee/expense: decreases capital AND is realized loss
+      const monto=m.monto||(m.price||0);
+      cap=Math.max(0,cap-monto); stock=Math.max(0,stock-monto);
+      ganR-=monto; m._gan=-monto;
+    } else if(m.tipo==='venta'){
+      // For banco/caja: venta is just a withdrawal — reduces capital at cost, no gain
+      if(ta==='banco'||tipoActivo(sc)==='banco'){
+        const monto=(m.qty||0)*(m.price||0);
+        cap=Math.max(0,cap-monto);
+        stock=Math.max(0,stock-(m.qty||0));
+        m._gan=0; m._cpp=stock>0?cap/stock:0;
+      } else {
+        const cpp=stock>0?cap/stock:0;
+        const q=Math.min(m.qty||0,stock);
+        const costo=q*cpp, ingreso=q*(m.price||0);
+        m._gan=ingreso-costo; ganR+=m._gan;
+        stock-=q; cap-=costo; m._cpp=stock>0?cap/stock:0;
+      }
+    } else if(m.tipo==='dividendo'){
+      // Sociedades: dividendo es ganancia pura, NO reduce capital
+      m._gan=m.monto||0; ganR+=m._gan;
+    } else if(m.tipo==='distribucion'){
+      const monto=m.monto||(m.price||0);
+      cap=Math.max(0,cap-monto);
+      distribuido+=monto;
+      m._gan=0;
+    } else if(m.tipo==='devolucion_capital'){
+      // Devolución de aporte en exceso: reduce capital, no es ganancia
+      const monto=m.price||0;
+      totalAportado-=monto; cap=Math.max(0,cap-monto);
+      m._gan=0;
+    } else if(m.tipo==='recupero'){
+      const monto=m.monto||(m.price||0);
+      const prevRecuperado=totalRecuperado;
+      totalRecuperado+=monto;
+      const ganancia=Math.max(0,totalRecuperado-totalAportado)-Math.max(0,prevRecuperado-totalAportado);
+      m._gan=ganancia;
+      if(ganancia>0) ganR+=ganancia;
+      distribuido+=monto;
+    } else if(m.tipo==='contraer_deuda'){
+      // Registra deuda contraída
+      pasivoPendiente+=(m.monto||m.price||0);
+    } else if(m.tipo==='pago_deuda'){
+      // Pago reduce la deuda pendiente
+      const monto=m.monto||m.price||0;
+      pasivoPendiente=Math.max(0,pasivoPendiente-monto);
+      totalDeudaPagada+=monto;
+    }
+  }
+  return { stock, cpp:stock>0?cap/stock:0, cap:Math.max(0,cap), ganR, distribuido, totalAportado, totalRecuperado, pasivoPendiente, totalDeudaPagada };
+};
+
+// ── TRASPASO ──────────────────────────────────────────────────
+let trTipoSel = 'oficial';
+function selTrTipo(t){
+  trTipoSel=t;
+  document.getElementById('trTipoOf').className='tog'+(t==='oficial'?' sel-of':'');
+  document.getElementById('trTipoBa').className='tog'+(t==='barrani'?' sel-of':'');
+}
+function openTraspaso(fromScId){
+  const opts=draft.subcats.map(sc=>'<option value="'+sc.id+'">'+catOf(sc).label+' › '+sc.nombre+'</option>').join('');
+  document.getElementById('trOrigen').innerHTML=opts;
+  document.getElementById('trDestino').innerHTML=opts;
+  if(fromScId) document.getElementById('trOrigen').value=fromScId;
+  const allIds=draft.subcats.map(s=>s.id);
+  const originId=document.getElementById('trOrigen').value;
+  document.getElementById('trDestino').value=allIds.find(id=>id!==originId)||allIds[0];
+  document.getElementById('trMonto').value='';
+  document.getElementById('trFecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('trDesc').value='';
+  document.getElementById('trCalc').style.display='none';
+  trTipoSel='oficial';
+  document.getElementById('trTipoOf').className='tog sel-of';
+  document.getElementById('trTipoBa').className='tog';
+  document.getElementById('traspasoBg').classList.add('open');
+}
+function trActualizar(){
+  const scId=document.getElementById('trOrigen').value;
+  const sc=draft.subcats.find(s=>s.id===scId);
+  const monto=parseFloat(document.getElementById('trMonto').value)||0;
+  if(sc&&monto>0){
+    const c=calcSC(sc),vp=valPatr(sc);
+    const box=document.getElementById('trCalc');
+    box.style.display='block';
+    box.innerHTML='<strong>Saldo origen:</strong> '+fmt(vp)+(c.stock>0?' · Stock: '+fmtN(c.stock)+' '+(sc.inmUnit||'u.'):'')+'<br><strong>Saldo resultante:</strong> '+fmt(Math.max(0,vp-monto));
+  } else document.getElementById('trCalc').style.display='none';
+}
+function saveTraspaso(){
+  const originId=document.getElementById('trOrigen').value;
+  const destId=document.getElementById('trDestino').value;
+  const monto=parseFloat(document.getElementById('trMonto').value)||0;
+  const fecha=document.getElementById('trFecha').value||new Date().toISOString().split('T')[0];
+  const desc=document.getElementById('trDesc').value.trim()||'Traspaso';
+  if(!originId||!destId||originId===destId){alert('Elegí origen y destino distintos.');return;}
+  if(monto<=0){alert('Ingresá un monto mayor a cero.');return;}
+  const scOrig=draft.subcats.find(s=>s.id===originId);
+  const scDest=draft.subcats.find(s=>s.id===destId);
+  if(!scOrig||!scDest) return;
+  const tId='tr_'+Date.now();
+  scOrig.movimientos.push({id:'m_'+Date.now()+'o',tipo:'venta',qty:1,price:monto,fecha,notes:desc+' → '+scDest.nombre,_traspasoId:tId});
+  scDest.movimientos.push({id:'m_'+(Date.now()+1)+'d',tipo:'aporte',qty:1,price:monto,fecha,notes:desc+' ← '+scOrig.nombre,tipo_inv:trTipoSel,_traspasoId:tId});
+  save();render();
+  document.getElementById('traspasoBg').classList.remove('open');
+  showToast('Traspaso: '+fmt(monto)+' de '+scOrig.nombre+' a '+scDest.nombre);
+}
+
+// ── DISTRIBUCIÓN A SOCIOS ─────────────────────────────────────
+function openDistrib(fromScId){
+  const opts=draft.subcats.map(sc=>'<option value="'+sc.id+'">'+catOf(sc).label+' › '+sc.nombre+'</option>').join('');
+  document.getElementById('distOrigen').innerHTML=opts;
+  if(fromScId) document.getElementById('distOrigen').value=fromScId;
+  document.getElementById('distMonto').value='';
+  document.getElementById('distFecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('distDesc').value='';
+  document.getElementById('distCalc').style.display='none';
+  document.getElementById('distribBg').classList.add('open');
+}
+function distActualizar(){
+  const monto=parseFloat(document.getElementById('distMonto').value)||0;
+  const box=document.getElementById('distCalc');
+  if(monto>0){
+    const p=monto/3;
+    box.style.display='block';
+    box.innerHTML='<strong>Por socio (1/3):</strong> '+fmt(p)+'<br>Brian: <strong>'+fmt(p)+'</strong>  ·  Ezequiel: <strong>'+fmt(p)+'</strong>  ·  Tere: <strong>'+fmt(p)+'</strong>';
+  } else box.style.display='none';
+}
+function saveDistrib(){
+  const scId=document.getElementById('distOrigen').value;
+  const monto=parseFloat(document.getElementById('distMonto').value)||0;
+  const fecha=document.getElementById('distFecha').value||new Date().toISOString().split('T')[0];
+  const desc=document.getElementById('distDesc').value.trim()||'Distribución a socios';
+  if(!scId){alert('Elegí la subcategoría de origen.');return;}
+  if(monto<=0){alert('Ingresá un monto mayor a cero.');return;}
+  const sc=draft.subcats.find(s=>s.id===scId);if(!sc)return;
+  const p=monto/3;
+  sc.movimientos.push({id:'m_'+Date.now(),tipo:'distribucion',qty:1,price:monto,monto,fecha,notes:desc,socios:{Brian:p,Ezequiel:p,Tere:p}});
+  save();render();
+  document.getElementById('distribBg').classList.remove('open');
+  showToast('Distribución: '+fmt(p)+' por socio');
+}
+
+// ── TOTAL DISTRIBUIDO ─────────────────────────────────────────
+function totalDistribuido(subcats,desde){
+  return (subcats||draft.subcats).reduce((s,sc)=>s+sc.movimientos.filter(m=>m.tipo==='distribucion'&&(!desde||m.fecha>=desde)).reduce((ss,m)=>ss+(m.monto||0),0),0);
+}
+
+// ── RENDIMIENTO ───────────────────────────────────────────────
+function renderRendimiento(){
+  const el=document.getElementById('rendContent');
+  if(!history.length){
+    el.innerHTML='<div class="empty-state"><i class="ti ti-trending-up"></i><div>Sin estados definitivos cerrados aún</div><div style="font-size:12px;margin-top:6px">Cerrá tu primer estado definitivo para ver el rendimiento</div></div>';
+    return;
+  }
+  const sorted=[...history].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const base=sorted[0];
+  const totBase=totalPatrNeto(base.subcats);
+  const totAct=totalPatrNeto();
+  const dist=totalDistribuido(draft.subcats,base.fecha);
+  const ganReal=(totAct+dist)-totBase;
+  const ganR=totalGanR();
+  const ganNR=totalGanNR();
+  const pSocio=dist/3;
+  let html='';
+  // Hero
+  html+='<div class="rend-hero">';
+  html+='<div class="rend-mc" style="background:'+(ganReal>=0?'#e6f5ee':'#fdf0ef')+';border-color:'+(ganReal>=0?'#1D9E75':'#e74c3c')+'"><div class="lbl" style="color:'+(ganReal>=0?'#0a6040':'#c0392b')+'">Ganancia real del período</div><div class="val" style="color:'+(ganReal>=0?'#0a6040':'#c0392b')+'">'+(ganReal>=0?'+':'')+fmt(ganReal)+'</div><div class="sub" style="color:'+(ganReal>=0?'#1D9E75':'#e74c3c')+'">desde '+fmtFecha(base.fecha)+'</div></div>';
+  html+='<div class="rend-mc" style="background:#f5f5f5;border-color:#ccc"><div class="lbl" style="color:#555">Patr. neto base</div><div class="val" style="color:#333">'+fmt(totBase)+'</div><div class="sub" style="color:#888">'+fmtFecha(base.fecha)+(base.desc?' · '+base.desc:'')+'</div></div>';
+  html+='<div class="rend-mc" style="background:#f0f8ff;border-color:#378ADD"><div class="lbl" style="color:#1a4fa0">Patr. neto actual</div><div class="val" style="color:#1a4fa0">'+fmt(totAct)+'</div><div class="sub" style="color:#378ADD">'+(totAct>=totBase?'+':'')+fmt(totAct-totBase)+' vs base</div></div>';
+  html+='<div class="rend-mc" style="background:#fff0f8;border-color:#a0207a"><div class="lbl" style="color:#a0207a">Distribuido a socios</div><div class="val" style="color:#a0207a">'+fmt(dist)+'</div><div class="sub" style="color:#c060a0">'+fmt(pSocio)+' por socio</div></div>';
+  html+='</div>';
+  // Fórmula
+  const totPasivoAct=totalPasivos();
+  const totPasivoBase=totalPasivos(base.subcats);
+  const patrNetoAct=totAct; // totAct ya es totalPatrNeto
+  const patrNetoBase=totBase; // totBase ya es totalPatrNeto
+  const deudaPagadaPeriodo=totPasivoBase-totPasivoAct; // deuda reducida (no es ganancia)
+  const ganRealAjustada=(patrNetoAct+dist)-patrNetoBase-Math.max(0,deudaPagadaPeriodo);
+  html+='<div class="calc-box" style="margin-bottom:1.5rem;line-height:2.2">'+
+    '<strong>Activos base:</strong> '+fmt(totalAll(base.subcats))+(totPasivoBase>0?' − <strong>Pasivos:</strong> '+fmt(totPasivoBase):'')+'<br>'+'<strong>Patrimonio neto base:</strong> '+fmt(patrNetoBase)+' · <strong>Patrimonio neto actual:</strong> '+fmt(patrNetoAct)+'<br>'+
+    '<strong>Cálculo ganancia real</strong> = (Patr. neto actual <strong>'+fmt(patrNetoAct)+'</strong> + Distribuido <strong>'+fmt(dist)+'</strong> − Deuda pagada <strong>'+fmt(Math.max(0,deudaPagadaPeriodo))+'</strong>) − Base <strong>'+fmt(patrNetoBase)+'</strong> = <span class="'+(ganRealAjustada>=0?'cg':'cl')+'" style="font-size:15px">'+(ganRealAjustada>=0?'+':'')+fmt(ganRealAjustada)+'</span>'+
+  '</div>';
+  // Socios
+  if(dist>0){
+    html+='<div class="section-lbl">Distribuciones del período</div><div class="socios-row">';
+    ['Brian','Ezequiel','Tere'].forEach(socio=>{
+      const tot=draft.subcats.reduce((s,sc)=>s+sc.movimientos.filter(m=>m.tipo==='distribucion'&&m.fecha>=base.fecha).reduce((ss,m)=>ss+((m.socios&&m.socios[socio])||0),0),0);
+      html+='<div class="socio-mc"><div class="name">'+socio+'</div><div class="amt">'+fmt(tot)+'</div><div class="sub">recibido</div></div>';
+    });
+    html+='</div><div class="distrib-list">';
+    const all=[];
+    draft.subcats.forEach(sc=>sc.movimientos.filter(m=>m.tipo==='distribucion'&&m.fecha>=base.fecha).forEach(m=>all.push({sc,m})));
+    all.sort((a,b)=>a.m.fecha.localeCompare(b.m.fecha));
+    all.forEach(({sc,m})=>{
+      html+='<div class="distrib-row"><i class="ti ti-users" style="color:#a0207a;font-size:14px;flex-shrink:0"></i><div style="flex:1"><div style="font-size:12px;font-weight:600">'+m.notes+'</div><div style="font-size:11px;color:#aaa">'+fmtFecha(m.fecha)+' · Desde: '+sc.nombre+'</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:700;color:#a0207a">'+fmt(m.monto||0)+'</div><div style="font-size:11px;color:#aaa">'+fmt((m.monto||0)/3)+'/socio</div></div></div>';
+    });
+    html+='</div>';
+  }
+  // Tabla por categoría
+  html+='<div class="section-lbl">Variación por categoría</div><table class="rend-table"><thead><tr><th style="width:30%">Categoría / Activo</th><th style="text-align:right;width:17%">Base</th><th style="text-align:right;width:17%">Actual</th><th style="text-align:right;width:18%">Distribuido</th><th style="text-align:right;width:18%">Variación real</th></tr></thead><tbody>';
+  CATS.forEach(cat=>{
+    const sB=base.subcats.filter(s=>s.catId===cat.id),sA=draft.subcats.filter(s=>s.catId===cat.id);
+    const allIds=[...new Set([...sB.map(s=>s.id),...sA.map(s=>s.id)])];if(!allIds.length)return;
+    const cB=sB.reduce((s,sc)=>s+valPatr(sc),0),cA=sA.reduce((s,sc)=>s+valPatr(sc),0);
+    const cD=sA.reduce((s,sc)=>s+sc.movimientos.filter(m=>m.tipo==='distribucion'&&m.fecha>=base.fecha).reduce((ss,m)=>ss+(m.monto||0),0),0);
+    const cV=(cA+cD)-cB;
+    html+='<tr style="background:#f9f9f7"><td style="font-weight:700;font-size:11px;text-transform:uppercase;color:#888;letter-spacing:.05em;padding:8px 10px">'+cat.label+'</td><td style="text-align:right">'+fmt(cB)+'</td><td style="text-align:right">'+fmt(cA)+'</td><td style="text-align:right;color:#a0207a">'+(cD?fmt(cD):'—')+'</td><td style="text-align:right" class="'+(cV>=0?'delta-pos':'delta-neg')+'">'+(cV>=0?'+':'')+fmt(cV)+'</td></tr>';
+    allIds.forEach(sid=>{
+      const scB2=sB.find(s=>s.id===sid),scA2=sA.find(s=>s.id===sid);
+      const vB2=scB2?valPatr(scB2):0,vA2=scA2?valPatr(scA2):0;
+      const d2=scA2?scA2.movimientos.filter(m=>m.tipo==='distribucion'&&m.fecha>=base.fecha).reduce((s,m)=>s+(m.monto||0),0):0;
+      const vr=(vA2+d2)-vB2;
+      html+='<tr><td style="padding-left:18px;font-size:12px">'+(scA2||scB2).nombre+'</td><td style="text-align:right;font-size:12px">'+(vB2?fmt(vB2):'—')+'</td><td style="text-align:right;font-size:12px">'+(vA2?fmt(vA2):'—')+'</td><td style="text-align:right;font-size:12px;color:#a0207a">'+(d2?fmt(d2):'—')+'</td><td style="text-align:right;font-size:12px" class="'+(vr>=0?'delta-pos':'delta-neg')+'">'+(vr?(vr>=0?'+':'')+fmt(vr):'—')+'</td></tr>';
+    });
+  });
+  html+='<tr class="tot-row"><td>Total</td><td style="text-align:right">'+fmt(totBase)+'</td><td style="text-align:right">'+fmt(totAct)+'</td><td style="text-align:right;color:#a0207a">'+fmt(dist)+'</td><td style="text-align:right" class="'+(ganReal>=0?'delta-pos':'delta-neg')+'">'+(ganReal>=0?'+':'')+fmt(ganReal)+'</td></tr>';
+  // Pasivos rows
+  if(totPasivoBase>0||totPasivoAct>0){
+    const pasDelta=totPasivoAct-totPasivoBase;
+    html+='<tr style="background:#fff5f5"><td style="font-weight:700;color:#c0392b;font-size:11px;text-transform:uppercase;padding:8px 10px">Pasivos totales</td><td style="text-align:right;font-size:12px;color:#c0392b">'+(totPasivoBase?'−'+fmt(totPasivoBase):'—')+'</td><td style="text-align:right;font-size:12px;color:#c0392b">−'+fmt(totPasivoAct)+'</td><td></td><td style="text-align:right;font-size:12px;color:'+(pasDelta<=0?'#0a6040':'#c0392b')+'">'+(pasDelta<=0?''+fmt(Math.abs(pasDelta)):'+'+fmt(pasDelta))+'</td></tr>';
+    html+='<tr class="tot-row" style="border-top:2px solid #333"><td>Patrimonio neto</td><td style="text-align:right">'+fmt(totBase-totPasivoBase)+'</td><td style="text-align:right;color:#0a6040">'+fmt(totAct-totPasivoAct)+'</td><td></td><td style="text-align:right;color:'+(((totAct-totPasivoAct)-(totBase-totPasivoBase))>=0?'#0a6040':'#c0392b')+'">'+((totAct-totPasivoAct-(totBase-totPasivoBase))>=0?'+':'')+fmt((totAct-totPasivoAct)-(totBase-totPasivoBase))+'</td></tr>';
+  }
+  html+='</tbody></table>';
+  html+='<div class="calc-box"><strong>Ganancia realizada (ventas+dividendos):</strong> <span class="cg">'+fmt(ganR)+'</span><br><strong>Revalorización no realizada (bonos):</strong> <span class="'+(ganNR>=0?'cg':'cl')+'">'+fmt(ganNR)+'</span></div>';
+  el.innerHTML=html;
+}
+
+
+
+// ── COLLAPSE / EXPAND ─────────────────────────────────────────
+// expandedState: Set of subcat ids that are expanded
+let expandedState = new Set(JSON.parse(localStorage.getItem('epv3_expanded') || '[]'));
+function saveExpanded(){ localStorage.setItem('epv3_expanded', JSON.stringify([...expandedState])); }
+
+function toggleCollapse(scId){
+  if(expandedState.has(scId)) expandedState.delete(scId);
+  else expandedState.add(scId);
+  saveExpanded();
+  // Update DOM without full re-render
+  const wrap = document.getElementById('scwrap_'+scId);
+  const btn  = document.getElementById('scbtn_'+scId);
+  const lbl  = document.getElementById('sclbl_'+scId);
+  if(!wrap||!btn) return;
+  const isOpen = expandedState.has(scId);
+  wrap.style.maxHeight = isOpen ? wrap.scrollHeight+'px' : '0px';
+  btn.classList.toggle('open', isOpen);
+  if(lbl) lbl.textContent = isOpen ? 'Ocultar movimientos' : _getMovLabel(scId);
+}
+
+function _getMovLabel(scId){
+  const sc = draft.subcats.find(s=>s.id===scId);
+  if(!sc) return '';
+  return sc.movimientos.length + ' movimiento' + (sc.movimientos.length!==1?'s':'');
+}
+
+function expandAll(){
+  draft.subcats.forEach(sc=>expandedState.add(sc.id));
+  saveExpanded();
+  renderDetail();
+}
+function collapseAll(){
+  expandedState.clear();
+  saveExpanded();
+  renderDetail();
+}
+
+// ── EVENT DELEGATION ──────────────────────────────────────────
+document.addEventListener('click', function(e){
+  // Collapse toggle
+  const colBtn=e.target.closest('.sc-collapse-btn');
+  if(colBtn){toggleCollapse(colBtn.dataset.scid);return;}
+  // Notes collapse toggle
+  const notesBtn=e.target.closest('.notes-collapse-btn');
+  if(notesBtn){
+    const nid=notesBtn.dataset.nid;
+    const wrap=document.getElementById('noteswrap_'+nid);
+    if(!wrap)return;
+    const isOpen=wrap.style.maxHeight!=='0px';
+    wrap.style.maxHeight=isOpen?'0px':wrap.scrollHeight+'px';
+    notesBtn.classList.toggle('open',!isOpen);
+    return;
+  }
+  const addMovBtn=e.target.closest('.add-mov-btn');
+  if(addMovBtn){openMovModal(addMovBtn.dataset.scid);return;}
+  const editSubBtn=e.target.closest('.edit-sub-btn');
+  if(editSubBtn){openEditSub(editSubBtn.dataset.scid);return;}
+  const editMovBtn=e.target.closest('.mov-act-btn.edit');
+  if(editMovBtn){e.stopPropagation();openEditMov(editMovBtn.dataset.scid,editMovBtn.dataset.mid);return;}
+  const delMovBtn=e.target.closest('.mov-act-btn.del');
+  if(delMovBtn){e.stopPropagation();deleteMov(delMovBtn.dataset.scid,delMovBtn.dataset.mid);return;}
+  const tickerBadge=e.target.closest('.ticker-badge');
+  if(tickerBadge){fetchPrice(tickerBadge.dataset.scid);return;}
+  const movTipBtn=e.target.closest('#movTipoSel .tog');
+  if(movTipBtn){setMovTipo(movTipBtn.dataset.tid);return;}
+});
+
+// Historial button delegation
+document.addEventListener('click', function(e2){
+  const verBtn=e2.target.closest('.hist-ver-btn');
+  if(verBtn){verHistorico(verBtn.dataset.hid);return;}
+  const carBtn=e2.target.closest('.hist-car-btn');
+  if(carBtn){cargarComoNuevo(carBtn.dataset.hid);return;}
+});
+
+['wizardBg','movBg','editSubBg','editMovBg','closeBg','viewHistBg'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el)el.addEventListener('click',e=>{if(e.target.id===id)el.classList.remove('open');});
+});
+
+
+// ── INIT: load from Supabase, fallback to localStorage ───────
+(async function init() {
+  showToast('Cargando datos…');
+  const remote = await sbLoad();
+  if(remote && remote.draft && remote.draft.subcats && remote.draft.subcats.length > 0) {
+    draft = remote.draft;
+    history = remote.history || [];
+    // Also update localStorage as cache
+    lsSet('epv3_draft', draft);
+    lsSet('epv3_history', history);
+    console.log('Loaded from Supabase:', draft.subcats.length, 'subcats');
+  } else {
+    // Check localStorage
+    const localDraft = ls('epv3_draft', null);
+    if(localDraft && localDraft.subcats && localDraft.subcats.length > 0) {
+      draft = localDraft;
+      history = ls('epv3_history', []);
+      console.log('Loaded from localStorage:', draft.subcats.length, 'subcats');
+      // Push to Supabase
+      sbSave(draft, history);
+    } else {
+      // Use seed data
+      console.log('Using seed data');
+    }
+  }
+  render();
+})();
+</script>
+
+<script>
+(function(){
+  try {
+    var existing = localStorage.getItem('epv3_draft');
+    var draft = existing ? JSON.parse(existing) : null;
+    var needsSeed = !draft || !draft.subcats || draft.subcats.length === 0;
+    if(needsSeed){
+      var seedSubcats = [{"id": "sc_caja_central", "catId": "bancos", "nombre": "Caja Central", "tipo_activo": "banco", "movimientos": [{"id": "m_caja_in_m_sc_seed_asuncion_consolidated", "tipo": "aporte", "qty": 1, "price": 270000.0, "fecha": "2012-02-23", "notes": "Aporte socios → Dazzler Asunción Paraguay", "tipo_inv": "oficial", "_contrapartida_sc": "sc_seed_asuncion", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_sc_seed_asuncion_consolidated", "tipo": "venta", "qty": 1, "price": 270000.0, "fecha": "2012-02-23", "notes": "Pago → Dazzler Asunción Paraguay", "_contrapartida_sc": "sc_seed_asuncion", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_sc_seed_pocitos_consolidated", "tipo": "aporte", "qty": 1, "price": 140000.0, "fecha": "2012-02-23", "notes": "Aporte socios → Dazzler Pocitos Montevideo", "tipo_inv": "oficial", "_contrapartida_sc": "sc_seed_pocitos", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_sc_seed_pocitos_consolidated", "tipo": "venta", "qty": 1, "price": 140000.0, "fecha": "2012-02-23", "notes": "Pago → Dazzler Pocitos Montevideo", "_contrapartida_sc": "sc_seed_pocitos", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_sc_seed_artigas_consolidated", "tipo": "aporte", "qty": 1, "price": 140000.0, "fecha": "2012-02-23", "notes": "Aporte socios → Artigas Montevideo", "tipo_inv": "oficial", "_contrapartida_sc": "sc_seed_artigas", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_sc_seed_artigas_consolidated", "tipo": "venta", "qty": 1, "price": 140000.0, "fecha": "2012-02-23", "notes": "Pago → Artigas Montevideo", "_contrapartida_sc": "sc_seed_artigas", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_pir6_compra", "tipo": "aporte", "qty": 1, "price": 747568.584, "fecha": "2016-11-08", "notes": "Aporte socios → PIR6", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_pir6", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_pir6_compra", "tipo": "venta", "qty": 1, "price": 747568.584, "fecha": "2016-11-08", "notes": "Pago → PIR6", "_contrapartida_sc": "sc_seed_pir6", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_hatz_000", "tipo": "aporte", "qty": 1, "price": 94000.0, "fecha": "2019-05-20", "notes": "Aporte socios → Hatzalacha Bye Israel", "tipo_inv": "oficial", "_contrapartida_sc": "sc_seed_hatz", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_hatz_000", "tipo": "venta", "qty": 1, "price": 94000.0, "fecha": "2019-05-20", "notes": "Pago → Hatzalacha Bye Israel", "_contrapartida_sc": "sc_seed_hatz", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_hatz_001", "tipo": "aporte", "qty": 1, "price": 94000.0, "fecha": "2019-05-24", "notes": "Aporte socios → Hatzalacha Bye Israel", "tipo_inv": "oficial", "_contrapartida_sc": "sc_seed_hatz", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_hatz_001", "tipo": "venta", "qty": 1, "price": 94000.0, "fecha": "2019-05-24", "notes": "Pago → Hatzalacha Bye Israel", "_contrapartida_sc": "sc_seed_hatz", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_hatz_002", "tipo": "aporte", "qty": 1, "price": 175000.0, "fecha": "2019-06-05", "notes": "Aporte socios → Hatzalacha Bye Israel", "tipo_inv": "oficial", "_contrapartida_sc": "sc_seed_hatz", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_hatz_002", "tipo": "venta", "qty": 1, "price": 175000.0, "fecha": "2019-06-05", "notes": "Pago → Hatzalacha Bye Israel", "_contrapartida_sc": "sc_seed_hatz", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_hatz_003", "tipo": "aporte", "qty": 1, "price": 90000.0, "fecha": "2019-08-08", "notes": "Aporte socios → Hatzalacha Bye Israel", "tipo_inv": "oficial", "_contrapartida_sc": "sc_seed_hatz", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_hatz_003", "tipo": "venta", "qty": 1, "price": 90000.0, "fecha": "2019-08-08", "notes": "Pago → Hatzalacha Bye Israel", "_contrapartida_sc": "sc_seed_hatz", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_th_01", "tipo": "aporte", "qty": 1, "price": 104000, "fecha": "2020-03-11", "notes": "Aporte socios → Thames 221", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_thames", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_th_01", "tipo": "venta", "qty": 1, "price": 104000, "fecha": "2020-03-11", "notes": "Pago → Thames 221", "_contrapartida_sc": "sc_seed_thames", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_th_02", "tipo": "aporte", "qty": 1, "price": 72000, "fecha": "2020-06-02", "notes": "Aporte socios → Thames 221", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_thames", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_th_02", "tipo": "venta", "qty": 1, "price": 72000, "fecha": "2020-06-02", "notes": "Pago → Thames 221", "_contrapartida_sc": "sc_seed_thames", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_devin_m_th_d1", "tipo": "aporte", "qty": 1, "price": 1100, "fecha": "2020-06-18", "notes": "Devolución ← Thames 221", "_contrapartida_sc": "sc_seed_thames"}, {"id": "m_caja_in_m_th_03", "tipo": "aporte", "qty": 1, "price": 7500, "fecha": "2020-11-03", "notes": "Aporte socios → Thames 221", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_thames", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_th_03", "tipo": "venta", "qty": 1, "price": 7500, "fecha": "2020-11-03", "notes": "Pago → Thames 221", "_contrapartida_sc": "sc_seed_thames", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_ros_000", "tipo": "aporte", "qty": 1, "price": 400000.0, "fecha": "2021-02-25", "notes": "Aporte socios → USA Chapel / Vanderbilt", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_rosental", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_ros_000", "tipo": "venta", "qty": 1, "price": 400000.0, "fecha": "2021-02-25", "notes": "Pago → USA Chapel / Vanderbilt", "_contrapartida_sc": "sc_seed_rosental", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_city_000", "tipo": "aporte", "qty": 1, "price": 61624.63, "fecha": "2021-07-09", "notes": "Aporte socios → City Pro Israel", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_city_000", "tipo": "venta", "qty": 1, "price": 61624.63, "fecha": "2021-07-09", "notes": "Pago → City Pro Israel", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_city_001", "tipo": "aporte", "qty": 1, "price": 47250.0, "fecha": "2021-07-12", "notes": "Aporte socios → City Pro Israel", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_city_001", "tipo": "venta", "qty": 1, "price": 47250.0, "fecha": "2021-07-12", "notes": "Pago → City Pro Israel", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_city_002", "tipo": "aporte", "qty": 1, "price": 53250.0, "fecha": "2021-07-12", "notes": "Aporte socios → City Pro Israel", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_city_002", "tipo": "venta", "qty": 1, "price": 53250.0, "fecha": "2021-07-12", "notes": "Pago → City Pro Israel", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_city_003", "tipo": "aporte", "qty": 1, "price": 89900.0, "fecha": "2021-07-12", "notes": "Aporte socios → City Pro Israel", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_city_003", "tipo": "venta", "qty": 1, "price": 89900.0, "fecha": "2021-07-12", "notes": "Pago → City Pro Israel", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_city_004", "tipo": "aporte", "qty": 1, "price": 80100.0, "fecha": "2021-07-12", "notes": "Aporte socios → City Pro Israel", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_city_004", "tipo": "venta", "qty": 1, "price": 80100.0, "fecha": "2021-07-12", "notes": "Pago → City Pro Israel", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_city_005", "tipo": "aporte", "qty": 1, "price": 25000.0, "fecha": "2021-07-14", "notes": "Aporte socios → City Pro Israel", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_city_005", "tipo": "venta", "qty": 1, "price": 25000.0, "fecha": "2021-07-14", "notes": "Pago → City Pro Israel", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_devin_m_th_d2", "tipo": "aporte", "qty": 1, "price": 42900, "fecha": "2021-07-14", "notes": "Devolución ← Thames 221", "_contrapartida_sc": "sc_seed_thames"}, {"id": "m_caja_in_m_hatz_004", "tipo": "aporte", "qty": 1, "price": 300000.0, "fecha": "2021-08-16", "notes": "Aporte socios → Hatzalacha Bye Israel", "tipo_inv": "oficial", "_contrapartida_sc": "sc_seed_hatz", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_hatz_004", "tipo": "venta", "qty": 1, "price": 300000.0, "fecha": "2021-08-16", "notes": "Pago → Hatzalacha Bye Israel", "_contrapartida_sc": "sc_seed_hatz", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_vin_m_pir6_venta_000", "tipo": "aporte", "qty": 1, "price": 6600.15, "fecha": "2021-08-25", "notes": "Venta ← PIR6", "_contrapartida_sc": "sc_seed_pir6"}, {"id": "m_caja_in_m_city_006", "tipo": "aporte", "qty": 1, "price": 143000.0, "fecha": "2021-08-31", "notes": "Aporte socios → City Pro Israel", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_city_006", "tipo": "venta", "qty": 1, "price": 143000.0, "fecha": "2021-08-31", "notes": "Pago → City Pro Israel", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_vin_m_pir6_venta_001", "tipo": "aporte", "qty": 1, "price": 29699.913500000002, "fecha": "2021-09-06", "notes": "Venta ← PIR6", "_contrapartida_sc": "sc_seed_pir6"}, {"id": "m_caja_vin_m_pir6_venta_002", "tipo": "aporte", "qty": 1, "price": 5500.0, "fecha": "2021-09-14", "notes": "Venta ← PIR6", "_contrapartida_sc": "sc_seed_pir6"}, {"id": "m_caja_vin_m_pir6_venta_003", "tipo": "aporte", "qty": 1, "price": 3299.85, "fecha": "2021-10-06", "notes": "Venta ← PIR6", "_contrapartida_sc": "sc_seed_pir6"}, {"id": "m_caja_vin_m_pir6_venta_004", "tipo": "aporte", "qty": 1, "price": 3299.85, "fecha": "2021-10-28", "notes": "Venta ← PIR6", "_contrapartida_sc": "sc_seed_pir6"}, {"id": "m_caja_vin_m_pir6_venta_005", "tipo": "aporte", "qty": 1, "price": 3299.85, "fecha": "2021-12-13", "notes": "Venta ← PIR6", "_contrapartida_sc": "sc_seed_pir6"}, {"id": "m_caja_in_m_th_04", "tipo": "aporte", "qty": 1, "price": 9000, "fecha": "2022-02-24", "notes": "Aporte socios → Thames 221", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_thames", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_th_04", "tipo": "venta", "qty": 1, "price": 9000, "fecha": "2022-02-24", "notes": "Pago → Thames 221", "_contrapartida_sc": "sc_seed_thames", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_vin_m_pir6_venta_006", "tipo": "aporte", "qty": 1, "price": 8509.95, "fecha": "2022-02-25", "notes": "Venta ← PIR6", "_contrapartida_sc": "sc_seed_pir6"}, {"id": "m_caja_vin_m_pir6_venta_007", "tipo": "aporte", "qty": 1, "price": 90000.0, "fecha": "2022-09-06", "notes": "Venta ← PIR6", "_contrapartida_sc": "sc_seed_pir6"}, {"id": "m_caja_vin_m_pir6_venta_008", "tipo": "aporte", "qty": 1, "price": 9000.1527, "fecha": "2022-12-15", "notes": "Venta ← PIR6", "_contrapartida_sc": "sc_seed_pir6"}, {"id": "m_caja_in_m_city_007", "tipo": "aporte", "qty": 1, "price": 350000.0, "fecha": "2023-01-03", "notes": "Aporte socios → City Pro Israel", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_city_007", "tipo": "venta", "qty": 1, "price": 350000.0, "fecha": "2023-01-03", "notes": "Pago → City Pro Israel", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_vin_m_pir6_venta_009", "tipo": "aporte", "qty": 1, "price": 1000.0, "fecha": "2023-01-06", "notes": "Venta ← PIR6", "_contrapartida_sc": "sc_seed_pir6"}, {"id": "m_caja_in_m_city_008", "tipo": "aporte", "qty": 1, "price": 150000.0, "fecha": "2023-01-09", "notes": "Aporte socios → City Pro Israel", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_city_008", "tipo": "venta", "qty": 1, "price": 150000.0, "fecha": "2023-01-09", "notes": "Pago → City Pro Israel", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_hatz_005", "tipo": "aporte", "qty": 1, "price": 375000.0, "fecha": "2023-01-30", "notes": "Aporte socios → Hatzalacha Bye Israel", "tipo_inv": "oficial", "_contrapartida_sc": "sc_seed_hatz", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_hatz_005", "tipo": "venta", "qty": 1, "price": 375000.0, "fecha": "2023-01-30", "notes": "Pago → Hatzalacha Bye Israel", "_contrapartida_sc": "sc_seed_hatz", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_hatz_006", "tipo": "aporte", "qty": 1, "price": 375000.0, "fecha": "2023-01-31", "notes": "Aporte socios → Hatzalacha Bye Israel", "tipo_inv": "oficial", "_contrapartida_sc": "sc_seed_hatz", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_hatz_006", "tipo": "venta", "qty": 1, "price": 375000.0, "fecha": "2023-01-31", "notes": "Pago → Hatzalacha Bye Israel", "_contrapartida_sc": "sc_seed_hatz", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_vin_m_pir6_venta_010", "tipo": "aporte", "qty": 1, "price": 6000.0, "fecha": "2023-05-18", "notes": "Venta ← PIR6", "_contrapartida_sc": "sc_seed_pir6"}, {"id": "m_caja_vin_m_pir6_venta_011", "tipo": "aporte", "qty": 1, "price": 24000.07, "fecha": "2023-05-18", "notes": "Venta ← PIR6", "_contrapartida_sc": "sc_seed_pir6"}, {"id": "m_caja_in_m_th_05", "tipo": "aporte", "qty": 1, "price": 60000, "fecha": "2023-08-23", "notes": "Aporte socios → Thames 221", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_thames", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_th_05", "tipo": "venta", "qty": 1, "price": 60000, "fecha": "2023-08-23", "notes": "Pago → Thames 221", "_contrapartida_sc": "sc_seed_thames", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_city_009", "tipo": "aporte", "qty": 1, "price": 750000.0, "fecha": "2024-08-16", "notes": "Aporte socios → City Pro Israel", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_city_009", "tipo": "venta", "qty": 1, "price": 750000.0, "fecha": "2024-08-16", "notes": "Pago → City Pro Israel", "_contrapartida_sc": "sc_seed_city", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_bog_000", "tipo": "aporte", "qty": 1, "price": 60000.0, "fecha": "2025-09-15", "notes": "Aporte socios → Bogotá 889", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_bogota", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_bog_000", "tipo": "venta", "qty": 1, "price": 60000.0, "fecha": "2025-09-15", "notes": "Pago → Bogotá 889", "_contrapartida_sc": "sc_seed_bogota", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_bog_001", "tipo": "aporte", "qty": 1, "price": 5400.0, "fecha": "2025-10-24", "notes": "Aporte socios → Bogotá 889", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_bogota", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_bog_001", "tipo": "venta", "qty": 1, "price": 5400.0, "fecha": "2025-10-24", "notes": "Pago → Bogotá 889", "_contrapartida_sc": "sc_seed_bogota", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_bog_002", "tipo": "aporte", "qty": 1, "price": 10800.0, "fecha": "2025-12-09", "notes": "Aporte socios → Bogotá 889", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_bogota", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_bog_002", "tipo": "venta", "qty": 1, "price": 10800.0, "fecha": "2025-12-09", "notes": "Pago → Bogotá 889", "_contrapartida_sc": "sc_seed_bogota", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_recup_m_th_r1", "tipo": "aporte", "qty": 1, "price": 141000, "fecha": "2026-01-19", "notes": "Recupero ← Thames 221", "_contrapartida_sc": "sc_seed_thames"}, {"id": "m_caja_dist_m_th_dist_01", "tipo": "venta", "qty": 1, "price": 141000, "fecha": "2026-01-19", "notes": "Distribución socios ← Thames 221", "_contrapartida_sc": "sc_seed_thames"}, {"id": "m_caja_in_m_bog_003", "tipo": "aporte", "qty": 1, "price": 10800.0, "fecha": "2026-01-19", "notes": "Aporte socios → Bogotá 889", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_bogota", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_bog_003", "tipo": "venta", "qty": 1, "price": 10800.0, "fecha": "2026-01-19", "notes": "Pago → Bogotá 889", "_contrapartida_sc": "sc_seed_bogota", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_maw_01", "tipo": "aporte", "qty": 1, "price": 73000, "fecha": "2026-05-08", "notes": "Aporte socios → Thames + Dpto MAW", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_dptomaw", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_maw_01", "tipo": "venta", "qty": 1, "price": 73000, "fecha": "2026-05-08", "notes": "Pago → Thames + Dpto MAW", "_contrapartida_sc": "sc_seed_dptomaw", "_contrapartida_tipo": "entrada"}, {"id": "m_caja_in_m_bog_004", "tipo": "aporte", "qty": 1, "price": 16200.0, "fecha": "2026-05-15", "notes": "Aporte socios → Bogotá 889", "tipo_inv": "barrani", "_contrapartida_sc": "sc_seed_bogota", "_contrapartida_tipo": "salida"}, {"id": "m_caja_out_m_bog_004", "tipo": "venta", "qty": 1, "price": 16200.0, "fecha": "2026-05-15", "notes": "Pago → Bogotá 889", "_contrapartida_sc": "sc_seed_bogota", "_contrapartida_tipo": "entrada"}], "ticker": null, "inmTipo": "und", "inmUnit": null, "pais": null, "_precioMercado": null, "notas": "Caja central que consolida todos los flujos de efectivo del patrimonio"}, {"id": "sc_seed_hatz", "catId": "sociedades", "nombre": "Hatzalacha Bye Israel", "movimientos": [{"id": "m_hatz_000", "tipo": "aporte", "qty": 1, "price": 94000.0, "fecha": "2019-05-20", "notes": "Pago de Inversiones GIRO", "tipo_inv": "oficial", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_hatz_001", "tipo": "aporte", "qty": 1, "price": 94000.0, "fecha": "2019-05-24", "notes": "Pago de Inversiones GIRO", "tipo_inv": "oficial", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_hatz_002", "tipo": "aporte", "qty": 1, "price": 175000.0, "fecha": "2019-06-05", "notes": "Pago de Inversiones GIRO", "tipo_inv": "oficial", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_hatz_003", "tipo": "aporte", "qty": 1, "price": 90000.0, "fecha": "2019-08-08", "notes": "Pago de Inversiones GIRO", "tipo_inv": "oficial", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_hatz_004", "tipo": "aporte", "qty": 1, "price": 300000.0, "fecha": "2021-08-16", "notes": "Pago de Inversiones GIRO", "tipo_inv": "oficial", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_hatz_005", "tipo": "aporte", "qty": 1, "price": 375000.0, "fecha": "2023-01-30", "notes": "Pago de Inversiones GIRO", "tipo_inv": "oficial", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_hatz_006", "tipo": "aporte", "qty": 1, "price": 375000.0, "fecha": "2023-01-31", "notes": "Pago de Inversiones GIRO", "tipo_inv": "oficial", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}], "ticker": null, "inmTipo": "und", "inmUnit": null, "pais": "Israel", "_precioMercado": null, "sc_tipo": "sociedad_dividendos"}, {"id": "sc_seed_city", "catId": "sociedades", "nombre": "City Pro Israel", "movimientos": [{"id": "m_city_000", "tipo": "aporte", "qty": 1, "price": 61624.63, "fecha": "2021-07-09", "notes": "", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_city_001", "tipo": "aporte", "qty": 1, "price": 47250.0, "fecha": "2021-07-12", "notes": "", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_city_002", "tipo": "aporte", "qty": 1, "price": 53250.0, "fecha": "2021-07-12", "notes": "", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_city_003", "tipo": "aporte", "qty": 1, "price": 89900.0, "fecha": "2021-07-12", "notes": "", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_city_004", "tipo": "aporte", "qty": 1, "price": 80100.0, "fecha": "2021-07-12", "notes": "", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_city_005", "tipo": "aporte", "qty": 1, "price": 25000.0, "fecha": "2021-07-14", "notes": "SAMUEL", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_city_006", "tipo": "aporte", "qty": 1, "price": 143000.0, "fecha": "2021-08-31", "notes": "", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_city_007", "tipo": "aporte", "qty": 1, "price": 350000.0, "fecha": "2023-01-03", "notes": "2DO PROYECTO", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_city_008", "tipo": "aporte", "qty": 1, "price": 150000.0, "fecha": "2023-01-09", "notes": "2DO PROYECTO", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_city_009", "tipo": "aporte", "qty": 1, "price": 750000.0, "fecha": "2024-08-16", "notes": "", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}], "ticker": null, "inmTipo": "und", "inmUnit": null, "pais": "Israel", "_precioMercado": null, "sc_tipo": "sociedad_dividendos"}, {"id": "sc_seed_thames", "catId": "inmuebles", "nombre": "Thames 221", "movimientos": [{"id": "m_th_01", "tipo": "aporte", "qty": 1, "price": 104000, "fecha": "2020-03-11", "notes": "TERRENO PARC + ESCRI (40%)", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_th_02", "tipo": "aporte", "qty": 1, "price": 72000, "fecha": "2020-06-02", "notes": "SALDO TERRENO (30%+10%)", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_th_03", "tipo": "aporte", "qty": 1, "price": 7500, "fecha": "2020-11-03", "notes": "GASTOS A RENDIR (30%)", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_th_04", "tipo": "aporte", "qty": 1, "price": 9000, "fecha": "2022-02-24", "notes": "PLUSVALIA", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_th_05", "tipo": "aporte", "qty": 1, "price": 60000, "fecha": "2023-08-23", "notes": "", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_th_d1", "tipo": "devolucion_capital", "qty": 1, "price": 1100, "fecha": "2020-06-18", "notes": "REINTEGRO DANI — devolución aporte exceso", "_contrapartida_sc": "sc_caja_central"}, {"id": "m_th_d2", "tipo": "devolucion_capital", "qty": 1, "price": 42900, "fecha": "2021-07-14", "notes": "REINTEGRO DANI — devolución aporte exceso", "_contrapartida_sc": "sc_caja_central"}, {"id": "m_th_r1", "tipo": "recupero", "qty": 1, "price": 141000, "monto": 141000, "fecha": "2026-01-19", "notes": "A CUENTA THAMES", "_contrapartida_sc": "sc_caja_central"}, {"id": "m_th_dist_01", "tipo": "distribucion", "qty": 1, "price": 141000, "monto": 141000, "fecha": "2026-01-19", "notes": "Distribución A Cuenta Thames — recupero de capital", "socios": {"Brian": 47000, "Ezequiel": 47000, "Tere": 47000}, "_contrapartida_sc": "sc_caja_central"}], "ticker": null, "inmTipo": "pct", "inmUnit": null, "pais": "Argentina", "_precioMercado": null, "sc_tipo": "recupero_capital"}, {"id": "sc_seed_asuncion", "catId": "inmuebles", "nombre": "Dazzler Asunción Paraguay", "movimientos": [{"id": "m_sc_seed_asuncion_consolidated", "tipo": "compra", "qty": 3, "price": 90000.0, "fecha": "2012-02-23", "notes": "Compra 3 unidades — pagado en cuotas 2012-2017", "tipo_inv": "oficial", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}], "ticker": null, "inmTipo": "und", "inmUnit": "unidades", "pais": "Paraguay", "_precioMercado": null, "notas": "HISTORIAL DE PAGOS CONDO HOTEL\n═══════════════════════════════════════════════════\n  23-02-2012  INICIO                         U$S  16.814,00\n  27-04-2012  COND CUOTA 2-3 PARTE 1        U$S  38.168,00\n  25-06-2012  COND CUOTA 4-5               U$S  36.668,00\n  21-08-2012  COND CUOTA 6                 U$S  18.334,00\n  24-10-2012  COND CUOTA 7-8-9             U$S  55.002,00\n  10-01-2013  COND CUOTA 10               U$S  18.334,00\n  06-02-2013  COND CUOTA 11               U$S  18.334,00\n  16-04-2013  COND CUOTA 12-13-14-15      U$S  73.336,00\n  27-08-2013  COND CUOTA 16-17-18-19      U$S  73.336,00\n  05-02-2014  COND CUOTA 20-21            U$S  36.668,00\n  06-05-2014  COND CUOTA POCITOS 22-27    U$S  28.002,00\n  18-11-2014  COND ARTI/PARAG REF 1       U$S   6.150,15\n  20-01-2015  COND ARTI/PARAG REF 2-3     U$S  12.300,30\n  30-09-2015  COND MVD                    U$S   8.959,89\n  30-09-2015  COND POCITOS FINAL          U$S   5.040,00\n  30-09-2015  COND ARTI/PARAG REF 4-11   U$S  49.201,00\n  15-04-2016  CONDO PARAG REF 12-20      U$S  36.450,00\n  31-08-2017  COND ARTIGAS FINAL         U$S  18.901,00\n  ─────────────────────────────────────────────────\n  TOTAL PAGADO                            U$S 549.998,34\n  Distribución: Asunción 49% · Pocitos 25.5% · Artigas 25.5%"}, {"id": "sc_seed_pocitos", "catId": "inmuebles", "nombre": "Dazzler Pocitos Montevideo", "movimientos": [{"id": "m_sc_seed_pocitos_consolidated", "tipo": "compra", "qty": 1, "price": 140000.0, "fecha": "2012-02-23", "notes": "Compra 1 unidad — pagado en cuotas 2012-2017", "tipo_inv": "oficial", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}], "ticker": null, "inmTipo": "und", "inmUnit": "unidades", "pais": "Uruguay", "_precioMercado": null, "notas": "HISTORIAL DE PAGOS CONDO HOTEL\n═══════════════════════════════════════════════════\n  23-02-2012  INICIO                         U$S  16.814,00\n  27-04-2012  COND CUOTA 2-3 PARTE 1        U$S  38.168,00\n  25-06-2012  COND CUOTA 4-5               U$S  36.668,00\n  21-08-2012  COND CUOTA 6                 U$S  18.334,00\n  24-10-2012  COND CUOTA 7-8-9             U$S  55.002,00\n  10-01-2013  COND CUOTA 10               U$S  18.334,00\n  06-02-2013  COND CUOTA 11               U$S  18.334,00\n  16-04-2013  COND CUOTA 12-13-14-15      U$S  73.336,00\n  27-08-2013  COND CUOTA 16-17-18-19      U$S  73.336,00\n  05-02-2014  COND CUOTA 20-21            U$S  36.668,00\n  06-05-2014  COND CUOTA POCITOS 22-27    U$S  28.002,00\n  18-11-2014  COND ARTI/PARAG REF 1       U$S   6.150,15\n  20-01-2015  COND ARTI/PARAG REF 2-3     U$S  12.300,30\n  30-09-2015  COND MVD                    U$S   8.959,89\n  30-09-2015  COND POCITOS FINAL          U$S   5.040,00\n  30-09-2015  COND ARTI/PARAG REF 4-11   U$S  49.201,00\n  15-04-2016  CONDO PARAG REF 12-20      U$S  36.450,00\n  31-08-2017  COND ARTIGAS FINAL         U$S  18.901,00\n  ─────────────────────────────────────────────────\n  TOTAL PAGADO                            U$S 549.998,34\n  Distribución: Asunción 49% · Pocitos 25.5% · Artigas 25.5%"}, {"id": "sc_seed_artigas", "catId": "inmuebles", "nombre": "Artigas Montevideo", "movimientos": [{"id": "m_sc_seed_artigas_consolidated", "tipo": "compra", "qty": 1, "price": 140000.0, "fecha": "2012-02-23", "notes": "Compra 1 unidad — pagado en cuotas 2012-2017", "tipo_inv": "oficial", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}], "ticker": null, "inmTipo": "und", "inmUnit": "unidades", "pais": "Uruguay", "_precioMercado": null, "notas": "HISTORIAL DE PAGOS CONDO HOTEL\n═══════════════════════════════════════════════════\n  23-02-2012  INICIO                         U$S  16.814,00\n  27-04-2012  COND CUOTA 2-3 PARTE 1        U$S  38.168,00\n  25-06-2012  COND CUOTA 4-5               U$S  36.668,00\n  21-08-2012  COND CUOTA 6                 U$S  18.334,00\n  24-10-2012  COND CUOTA 7-8-9             U$S  55.002,00\n  10-01-2013  COND CUOTA 10               U$S  18.334,00\n  06-02-2013  COND CUOTA 11               U$S  18.334,00\n  16-04-2013  COND CUOTA 12-13-14-15      U$S  73.336,00\n  27-08-2013  COND CUOTA 16-17-18-19      U$S  73.336,00\n  05-02-2014  COND CUOTA 20-21            U$S  36.668,00\n  06-05-2014  COND CUOTA POCITOS 22-27    U$S  28.002,00\n  18-11-2014  COND ARTI/PARAG REF 1       U$S   6.150,15\n  20-01-2015  COND ARTI/PARAG REF 2-3     U$S  12.300,30\n  30-09-2015  COND MVD                    U$S   8.959,89\n  30-09-2015  COND POCITOS FINAL          U$S   5.040,00\n  30-09-2015  COND ARTI/PARAG REF 4-11   U$S  49.201,00\n  15-04-2016  CONDO PARAG REF 12-20      U$S  36.450,00\n  31-08-2017  COND ARTIGAS FINAL         U$S  18.901,00\n  ─────────────────────────────────────────────────\n  TOTAL PAGADO                            U$S 549.998,34\n  Distribución: Asunción 49% · Pocitos 25.5% · Artigas 25.5%"}, {"id": "sc_seed_bogota", "catId": "inmuebles", "nombre": "Bogotá 889", "movimientos": [{"id": "m_bog_000", "tipo": "aporte", "qty": 1, "price": 60000.0, "fecha": "2025-09-15", "notes": "BOLETO Y GST DE INICIO (40%)", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_bog_001", "tipo": "aporte", "qty": 1, "price": 5400.0, "fecha": "2025-10-24", "notes": "PAGARE", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_bog_002", "tipo": "aporte", "qty": 1, "price": 10800.0, "fecha": "2025-12-09", "notes": "PAGARE 2-3 BOGOTA", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_bog_003", "tipo": "aporte", "qty": 1, "price": 10800.0, "fecha": "2026-01-19", "notes": "PAGARE 4-5 BOGOTA", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_bog_004", "tipo": "aporte", "qty": 1, "price": 16200.0, "fecha": "2026-05-15", "notes": "PAGARE 6-7-8 BOGOTA", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}], "ticker": null, "inmTipo": "pct", "inmUnit": null, "pais": "Argentina", "_precioMercado": null, "sc_tipo": "recupero_capital"}, {"id": "sc_seed_rosental", "catId": "inmuebles", "nombre": "USA Chapel / Vanderbilt", "movimientos": [{"id": "m_ros_000", "tipo": "aporte", "qty": 1, "price": 400000.0, "fecha": "2021-02-25", "notes": "INVERSION NYC ROSENTAL", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}], "ticker": null, "inmTipo": "pct", "inmUnit": null, "pais": "Estados Unidos", "_precioMercado": null, "sc_tipo": "recupero_capital"}, {"id": "sc_seed_pir6", "catId": "inmuebles", "nombre": "PIR6", "movimientos": [{"id": "m_pir6_compra", "tipo": "compra", "qty": 24000, "price": 31.148691, "fecha": "2016-11-08", "notes": "Compra 24.000 m² — pagado en cuotas 2016-2019 (total U$S 747,568.58)", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}, {"id": "m_pir6_venta_000", "tipo": "venta", "qty": 146.67, "price": 45.0, "fecha": "2021-08-25", "notes": "146.67M A 45USD", "_contrapartida_sc": "sc_caja_central"}, {"id": "m_pir6_venta_001", "tipo": "venta", "qty": 869.69, "price": 34.15, "fecha": "2021-09-06", "notes": "869.69MTS A 34.15USD", "_contrapartida_sc": "sc_caja_central"}, {"id": "m_pir6_venta_002", "tipo": "venta", "qty": 137.5, "price": 40.0, "fecha": "2021-09-14", "notes": "137.50MTS A 40USD", "_contrapartida_sc": "sc_caja_central"}, {"id": "m_pir6_venta_003", "tipo": "venta", "qty": 73.33, "price": 45.0, "fecha": "2021-10-06", "notes": "73.33MTS A 45USD", "_contrapartida_sc": "sc_caja_central"}, {"id": "m_pir6_venta_004", "tipo": "venta", "qty": 73.33, "price": 45.0, "fecha": "2021-10-28", "notes": "73.33MTS A 45USD", "_contrapartida_sc": "sc_caja_central"}, {"id": "m_pir6_venta_005", "tipo": "venta", "qty": 73.33, "price": 45.0, "fecha": "2021-12-13", "notes": "73.33MTS A 45USD", "_contrapartida_sc": "sc_caja_central"}, {"id": "m_pir6_venta_006", "tipo": "venta", "qty": 189.11, "price": 45.0, "fecha": "2022-02-25", "notes": "189.11MTS A 45USD", "_contrapartida_sc": "sc_caja_central"}, {"id": "m_pir6_venta_007", "tipo": "venta", "qty": 1800.0, "price": 50.0, "fecha": "2022-09-06", "notes": "1.800MTS A 50USD PAGARE", "_contrapartida_sc": "sc_caja_central"}, {"id": "m_pir6_venta_008", "tipo": "venta", "qty": 196.21, "price": 45.87, "fecha": "2022-12-15", "notes": "196.21MTS A 45.87USD", "_contrapartida_sc": "sc_caja_central"}, {"id": "m_pir6_venta_009", "tipo": "venta", "qty": 20.0, "price": 50.0, "fecha": "2023-01-06", "notes": "20MTS A 50USD", "_contrapartida_sc": "sc_caja_central"}, {"id": "m_pir6_venta_010", "tipo": "venta", "qty": 120.0, "price": 50.0, "fecha": "2023-05-18", "notes": "120MTS A 50USD", "_contrapartida_sc": "sc_caja_central"}, {"id": "m_pir6_venta_011", "tipo": "venta", "qty": 358.21, "price": 67.0, "fecha": "2023-05-18", "notes": "358.21MTS A 67USD", "_contrapartida_sc": "sc_caja_central"}], "ticker": null, "inmTipo": "und", "inmUnit": "m2", "pais": "Argentina", "_precioMercado": null, "notas": "HISTORIAL DE PAGOS PIR6 — Parque Industrial Ruta 6\n═══════════════════════════════════════════════════\nCOMPRAS / APORTES:\n  08-11-2016  COMPRA PIR6                    U$S 180.000,00\n  20-04-2017  GASTOS ESCRITURACION           U$S  70.800,00\n  09-10-2017  GASTOS A RENDIR OBRA           U$S 160.000,00\n  03-04-2018  GASTOS A RENDIR OBRA           U$S 112.980,77\n  09-05-2018  GASTOS A RENDIR OBRA           U$S  50.354,66\n  29-06-2018  GASTOS A RENDIR OBRA           U$S 103.574,08\n  13-11-2018  GASTOS A RENDIR OBRA           U$S  51.531,47\n  12-04-2019  GASTOS A RENDIR OBRA           U$S  18.327,60\n  ─────────────────────────────────────────────────\n  TOTAL PAGADO                               U$S 747.568,58\n  SUPERFICIE COMPRADA                         24.000,00 m²\n  CPP                                         U$S 31,15/m²"}, {"id": "sc_seed_dptomaw", "catId": "inmuebles", "nombre": "Thames + Dpto MAW", "sc_tipo": "recupero_capital", "movimientos": [{"id": "m_maw_01", "tipo": "aporte", "qty": 1, "price": 73000, "fecha": "2026-05-08", "notes": "DPTO MAW 120.000 USD", "tipo_inv": "barrani", "_contrapartida_sc": "sc_caja_central", "_contrapartida_tipo": "caja_out"}], "ticker": null, "inmTipo": "pct", "inmUnit": null, "pais": "Argentina", "_precioMercado": null, "notas": null}];
+      var newDraft = { subcats: seedSubcats, estado: 'borrador', lastSaved: new Date().toISOString() };
+      localStorage.setItem('epv3_draft', JSON.stringify(newDraft));
+      console.log('Seed data loaded: ' + seedSubcats.length + ' subcats');
+    } else {
+      console.log('Draft already has data (' + draft.subcats.length + ' subcats), skipping seed');
+    }
+  } catch(e) { console.error('Seed error:', e); }
+})();
+
+// ── LOGIN ─────────────────────────────────────────────────
+function doLogin(){
+  const u = document.getElementById('loginUser').value.trim().toUpperCase();
+  const p = document.getElementById('loginPass').value;
+  if(u === 'MENALLED' && p === 'MENALLED753951'){
+    document.getElementById('loginScreen').style.display = 'none';
+    sessionStorage.setItem('auth','1');
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginPass').focus();
+  }
+}
+// Check if already authenticated in this session
+if(sessionStorage.getItem('auth') === '1'){
+  document.getElementById('loginScreen').style.display = 'none';
+}
+
+</script>
+</body>
+</html>
