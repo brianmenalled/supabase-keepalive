@@ -5,8 +5,8 @@ on:
   workflow_dispatch:
 
 env:
-  SB_T1: "sbp_95cc22cb"
-  SB_T2: "ed17893f912d36225dfbf6b064e130b7"
+  SB_T1: "sbp_905eba95"
+  SB_T2: "58de83cdc06d83b64442fdd52a15cdac"
   # PATRIMONIO
   API_KEY_PAT: "sb_publishable_UzLgldTW5IMBamWuAsm7AQ_ah7h3jfa"
   PROJECT_PAT: "xsjeyqnpppnuojfeeglp"
