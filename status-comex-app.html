@@ -142,6 +142,8 @@ const SB_INS = { ...SB_H, 'Prefer': 'return=representation' };
    ============================================================ */
 let CURRENT_USER = null;  // { id, email, es_admin }
 let AUTH_TOKEN = null;    // JWT de Supabase
+let REFRESH_TOKEN = null; // Para renovar el JWT antes de que venza
+let refreshTimer = null;
 
 function authHeaders() {
   return {
@@ -181,6 +183,8 @@ async function doLogin() {
     const d = await r.json();
     if (!r.ok) throw new Error(d.error_description || d.msg || 'Credenciales inválidas');
     AUTH_TOKEN = d.access_token;
+    REFRESH_TOKEN = d.refresh_token;
+    scheduleTokenRefresh(d.expires_in);
     // Buscar en tabla usuarios
     const ur = await fetch(`${SB_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&select=id,email,es_admin`, {
       headers: authHeaders()
@@ -196,8 +200,39 @@ async function doLogin() {
   }
 }
 
+// Renueva el JWT de Supabase antes de que venza, para que una sesión larga
+// (varias horas seguidas cargando datos) nunca se corte de forma invisible.
+function scheduleTokenRefresh(expiresInSeconds) {
+  if (refreshTimer) clearTimeout(refreshTimer);
+  const secs = Number(expiresInSeconds) > 60 ? Number(expiresInSeconds) : 3600;
+  const delayMs = Math.max(secs - 300, 30) * 1000; // renovar 5 min antes de vencer
+  refreshTimer = setTimeout(refreshAuthToken, delayMs);
+}
+async function refreshAuthToken() {
+  if (!REFRESH_TOKEN) return;
+  try {
+    const r = await fetch(`${SB_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: REFRESH_TOKEN })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error_description || d.msg || 'No se pudo renovar la sesión');
+    AUTH_TOKEN = d.access_token;
+    REFRESH_TOKEN = d.refresh_token;
+    Object.assign(SB_H, { 'Authorization': `Bearer ${AUTH_TOKEN}` });
+    Object.assign(SB_INS, { 'Authorization': `Bearer ${AUTH_TOKEN}` });
+    scheduleTokenRefresh(d.expires_in);
+  } catch (e) {
+    console.error('refreshAuthToken:', e);
+    // Reintentar en 2 minutos en vez de dejar la sesión sin renovar hasta que expire
+    if (refreshTimer) clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(refreshAuthToken, 120000);
+  }
+}
 function doLogout() {
-  CURRENT_USER = null; AUTH_TOKEN = null;
+  if (refreshTimer) { clearTimeout(refreshTimer); refreshTimer = null; }
+  CURRENT_USER = null; AUTH_TOKEN = null; REFRESH_TOKEN = null;
   document.getElementById('appHeader').style.display = 'none';
   document.getElementById('mainNav').style.display = 'none';
   document.getElementById('app').style.display = 'none';
