@@ -135,7 +135,7 @@
 const SB_URL = 'https://vkpbyyclghbihglewipb.supabase.co';
 const SB_KEY = 'sb_publishable_QzPcc8tirq3MhR3KUrzQqg_j1ktAJEf';
 const SB_H = { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
-const SB_UPS = { ...SB_H, 'Prefer': 'resolution=merge-duplicates,return=minimal' };
+const SB_INS = { ...SB_H, 'Prefer': 'return=representation' };
 
 /* ============================================================
    AUTH — Supabase Auth + tabla usuarios
@@ -215,7 +215,7 @@ function showApp() {
   document.getElementById('adminBadge').style.display = isAdmin() ? '' : 'none';
   // Update SB_H to use auth token
   Object.assign(SB_H, { 'Authorization': `Bearer ${AUTH_TOKEN}` });
-  Object.assign(SB_UPS, { 'Authorization': `Bearer ${AUTH_TOKEN}` });
+  Object.assign(SB_INS, { 'Authorization': `Bearer ${AUTH_TOKEN}` });
   loadFromSupabase();
 }
 
@@ -243,8 +243,10 @@ async function sbGetAll(table, params='') {
   return all;
 }
 async function sbInsert(table, row) {
-  const r = await fetch(`${SB_URL}/rest/v1/${table}`, { method: 'POST', headers: SB_UPS, body: JSON.stringify(row) });
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, { method: 'POST', headers: SB_INS, body: JSON.stringify(row) });
   if (!r.ok) { const t = await r.text(); throw new Error(`sbInsert ${table}: ${r.status} ${t}`); }
+  const created = await r.json(); // [{ id, ...fila con el ID que asignó Postgres }]
+  return created[0];
 }
 async function sbUpdate(table, id, data, idField='id') {
   const r = await fetch(`${SB_URL}/rest/v1/${table}?${idField}=eq.${id}`, { method: 'PATCH', headers: { ...SB_H, 'Prefer': 'return=minimal' }, body: JSON.stringify(data) });
@@ -374,7 +376,6 @@ function save() {
     sharedSaveTimer = setTimeout(escribirArchivoCompartido, 800);
   }
 }
-function nextId(table) { const id = DB.nextId[table]++; save(); return id; }
 
 let DB = load();
 
@@ -944,11 +945,14 @@ function viewTemporadasList() {
 async function addTemporada() {
   const nombre = document.getElementById('tf_temporada_nombre').value.trim();
   if (!nombre) { alert('Ingresá un nombre para la temporada'); return; }
-  const id = nextId('temporadas');
-  const row = { id, nombre };
-  DB.temporadas.push(row);
-  await sbInsert('temporadas', row).catch(e => console.warn('addTemporada:', e));
-  openTemporada(id);
+  try {
+    const created = await sbInsert('temporadas', { nombre });
+    DB.temporadas.push(created);
+    openTemporada(created.id);
+  } catch (e) {
+    console.error('addTemporada:', e);
+    alert('No se pudo guardar la temporada. Revisá tu conexión e intentá de nuevo.');
+  }
 }
 async function deleteTemporada(id) {
   if (!confirm('¿Eliminar esta temporada? Las cargas que la usan quedarán sin temporada asignada (no se borran).')) return;
@@ -1067,9 +1071,9 @@ function viewCargasList(temporadaId) {
 
 async function addCarga() {
   const bl = document.getElementById('nf_bl').value.trim();
-  const id = nextId('cargas');
+  if (!bl) { alert('Ingresá el número de BL'); return; }
   const row = {
-    id, bl,
+    bl,
     temporada_id: VIEW.temporadaId || null,
     fecha_embarque: document.getElementById('nf_fecha').value || null,
     eta: document.getElementById('nf_eta').value || null,
@@ -1078,9 +1082,14 @@ async function addCarga() {
     puerto_origen: '', terminal: '', forwarder: '', etd: '',
     fecha_despacho: '', nro_despacho: '', valor_flete_ref: null, comentarios: '', etd_historial: [],
   };
-  DB.cargas.push(row);
-  await sbInsert('cargas', row).catch(e => console.warn('addCarga:', e));
-  renderAll();
+  try {
+    const created = await sbInsert('cargas', row);
+    DB.cargas.push(created);
+    renderAll();
+  } catch (e) {
+    console.error('addCarga:', e);
+    alert('No se pudo guardar la carga "' + bl + '". Revisá tu conexión e intentá de nuevo.');
+  }
 }
 async function deleteCarga(id) {
   const c = DB.cargas.find(x=>x.id===id);
@@ -1415,7 +1424,6 @@ async function addArticulo(cargaId) {
   const val = idPrefix => document.getElementById(idPrefix).value.trim();
   const num = idPrefix => { const v = Number(document.getElementById(idPrefix).value); return isNaN(v) ? 0 : v; };
   const numOrNull = idPrefix => { const raw = document.getElementById(idPrefix).value; if (raw === '') return null; const v = Number(raw); return isNaN(v) ? null : v; };
-  const id = nextId('articulos');
   const tipoSel = document.getElementById('af_tipo_producto').value;
   const desgloseInicial = (tipoSel === 'TELA') ? [] : [{
     categoria: '',
@@ -1427,7 +1435,7 @@ async function addArticulo(cargaId) {
     unitario_aduana: numOrNull('af_unitario_aduana'),
   }];
   const row = {
-    id, carga_id: cargaId, nombre,
+    carga_id: cargaId, nombre,
     cbm: num('af_cbm'),
     proveedor: val('af_proveedor'),
     cod_proveedor: val('af_cod_proveedor'),
@@ -1448,9 +1456,14 @@ async function addArticulo(cargaId) {
     composicion_real: val('af_composicion_real'),
     composicion_etiqueta: val('af_composicion_etiqueta'),
   };
-  DB.articulos.push(row);
-  await sbInsert('articulos', row).catch(e => console.warn('addArticulo:', e));
-  renderAll();
+  try {
+    const created = await sbInsert('articulos', row);
+    DB.articulos.push(created);
+    renderAll();
+  } catch (e) {
+    console.error('addArticulo:', e);
+    alert('No se pudo guardar el artículo "' + nombre + '". Revisá tu conexión e intentá de nuevo.');
+  }
 }
 function updArticulo(id, field, value) {
   const a = DB.articulos.find(x=>x.id===id);
@@ -1550,9 +1563,8 @@ function setIvaAdicional(id, value) {
 async function addGasto(cargaId) {
   const monto = Number(document.getElementById('gf_monto').value);
   if (!monto) { alert('Ingresá el monto en ARS'); return; }
-  const id = nextId('gastos');
   const row = {
-    id, carga_id: cargaId,
+    carga_id: cargaId,
     categoria_id: Number(document.getElementById('gf_cat').value),
     fecha_fc: document.getElementById('gf_fecha_fc').value || null,
     nro_fc: document.getElementById('gf_nro_fc').value.trim(),
@@ -1564,9 +1576,14 @@ async function addGasto(cargaId) {
     iva_usd: null,
     iva_adicional_usd: null,
   };
-  DB.gastos.push(row);
-  await sbInsert('gastos', row).catch(e => console.warn('addGasto:', e));
-  renderAll();
+  try {
+    const created = await sbInsert('gastos', row);
+    DB.gastos.push(created);
+    renderAll();
+  } catch (e) {
+    console.error('addGasto:', e);
+    alert('No se pudo guardar el gasto. Revisá tu conexión e intentá de nuevo.');
+  }
 }
 function marcarPagado(id) {
   const g = DB.gastos.find(x=>x.id===id);
@@ -1680,11 +1697,15 @@ function setGastosHundidosPct(value) {
 async function addCategoria() {
   const nombre = document.getElementById('cf_nombre').value.trim();
   if (!nombre) { alert('Ingresá un nombre'); return; }
-  const id = nextId('categorias');
-  const row = { id, nombre, metodo: document.getElementById('cf_metodo').value };
-  DB.categorias.push(row);
-  await sbInsert('categorias', row).catch(e => console.warn('addCategoria:', e));
-  renderAll();
+  const row = { nombre, metodo: document.getElementById('cf_metodo').value };
+  try {
+    const created = await sbInsert('categorias', row);
+    DB.categorias.push(created);
+    renderAll();
+  } catch (e) {
+    console.error('addCategoria:', e);
+    alert('No se pudo guardar la categoría. Revisá tu conexión e intentá de nuevo.');
+  }
 }
 async function deleteCategoria(id) {
   if (!confirm('¿Eliminar esta categoría? Los gastos que la usan quedarán sin categoría.')) return;
@@ -1725,15 +1746,19 @@ async function addTC() {
   const valor = Number(document.getElementById('tf_valor').value);
   if (!fecha || !valor) { alert('Completá fecha y valor'); return; }
   const existing = DB.tc_bna.find(t=>t.fecha===fecha);
-  if (existing) {
-    existing.valor = valor;
-    await sbUpdate('tc_bna', existing.id, { valor }).catch(e => console.warn('addTC update:', e));
-  } else {
-    const id = nextId('tc_bna');
-    DB.tc_bna.push({ id, fecha, valor });
-    await sbInsert('tc_bna', { id, fecha, valor }).catch(e => console.warn('addTC insert:', e));
+  try {
+    if (existing) {
+      existing.valor = valor;
+      await sbUpdate('tc_bna', existing.id, { valor });
+    } else {
+      const created = await sbInsert('tc_bna', { fecha, valor });
+      DB.tc_bna.push(created);
+    }
+    renderAll();
+  } catch (e) {
+    console.error('addTC:', e);
+    alert('No se pudo guardar el tipo de cambio. Revisá tu conexión e intentá de nuevo.');
   }
-  renderAll();
 }
 async function deleteTC(id) {
   if (!confirm('¿Eliminar este valor de TC?')) return;
