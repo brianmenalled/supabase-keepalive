@@ -192,6 +192,7 @@ async function doLogin() {
     const usuarios = await ur.json();
     if (!Array.isArray(usuarios) || usuarios.length === 0) throw new Error('Usuario no habilitado. Contactá al administrador.');
     CURRENT_USER = usuarios[0];
+    sessionExpiredHandled = false;
     showApp();
   } catch(e) {
     errEl.textContent = e.message;
@@ -241,6 +242,21 @@ function doLogout() {
   document.getElementById('loginError').textContent = '';
 }
 
+// Si Supabase rechaza una llamada por sesión no autorizada (401/403) pese a la
+// renovación automática (por ej. el refresh token se invalidó, o la compu estuvo
+// dormida/sin red mucho tiempo), no seguimos fallando en silencio: sacamos a la
+// persona a la pantalla de login con un aviso explícito, en vez de dejar que siga
+// cargando datos que nunca se van a guardar.
+let sessionExpiredHandled = false;
+function handleAuthFailure() {
+  if (sessionExpiredHandled) return;
+  sessionExpiredHandled = true;
+  doLogout();
+  document.getElementById('loginError').textContent =
+    '⚠ Tu sesión venció y se cerró por seguridad. Volvé a iniciar sesión — si estabas cargando algo, revisá que haya quedado guardado y volvé a cargar lo que falte.';
+  alert('Tu sesión venció y se cerró. Volvé a iniciar sesión — revisá si lo último que cargaste quedó guardado.');
+}
+
 function showApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appHeader').style.display = '';
@@ -256,6 +272,7 @@ function showApp() {
 
 async function sbGet(table, params='') {
   const r = await fetch(`${SB_URL}/rest/v1/${table}${params}`, { headers: SB_H });
+  if (r.status === 401 || r.status === 403) { handleAuthFailure(); throw new Error(`sbGet ${table}: sesión vencida`); }
   if (!r.ok) throw new Error(`sbGet ${table}: ${r.status}`);
   return r.json();
 }
@@ -269,6 +286,7 @@ async function sbGetAll(table, params='') {
     const r = await fetch(`${SB_URL}/rest/v1/${table}${params}${sep}limit=${pageSize}&offset=${offset}`, {
       headers: { ...SB_H, 'Prefer': 'count=exact' }
     });
+    if (r.status === 401 || r.status === 403) { handleAuthFailure(); throw new Error(`sbGetAll ${table}: sesión vencida`); }
     if (!r.ok) throw new Error(`sbGetAll ${table}: ${r.status}`);
     const data = await r.json();
     all = all.concat(data);
@@ -279,16 +297,19 @@ async function sbGetAll(table, params='') {
 }
 async function sbInsert(table, row) {
   const r = await fetch(`${SB_URL}/rest/v1/${table}`, { method: 'POST', headers: SB_INS, body: JSON.stringify(row) });
+  if (r.status === 401 || r.status === 403) { handleAuthFailure(); throw new Error(`sbInsert ${table}: sesión vencida`); }
   if (!r.ok) { const t = await r.text(); throw new Error(`sbInsert ${table}: ${r.status} ${t}`); }
   const created = await r.json(); // [{ id, ...fila con el ID que asignó Postgres }]
   return created[0];
 }
 async function sbUpdate(table, id, data, idField='id') {
   const r = await fetch(`${SB_URL}/rest/v1/${table}?${idField}=eq.${id}`, { method: 'PATCH', headers: { ...SB_H, 'Prefer': 'return=minimal' }, body: JSON.stringify(data) });
+  if (r.status === 401 || r.status === 403) { handleAuthFailure(); throw new Error(`sbUpdate ${table}: sesión vencida`); }
   if (!r.ok) { const t = await r.text(); throw new Error(`sbUpdate ${table}: ${r.status} ${t}`); }
 }
 async function sbDelete(table, id, idField='id') {
   const r = await fetch(`${SB_URL}/rest/v1/${table}?${idField}=eq.${id}`, { method: 'DELETE', headers: { ...SB_H, 'Prefer': 'return=minimal' } });
+  if (r.status === 401 || r.status === 403) { handleAuthFailure(); throw new Error(`sbDelete ${table}: sesión vencida`); }
   if (!r.ok) { const t = await r.text(); throw new Error(`sbDelete ${table}: ${r.status} ${t}`); }
 }
 async function sbUpsertConfig(data) {
