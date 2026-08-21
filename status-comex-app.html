@@ -787,6 +787,7 @@ let VIEW = { tab: 'cargas', temporadaId: null, cargaId: null, subtab: 'articulos
 const TABS = [
   { id: 'cargas', label: 'Cargas' },
   { id: 'articulos_global', label: 'Artículos' },
+  { id: 'catalogo', label: 'Catálogo' },
   { id: 'categorias', label: 'Categorías' },
   { id: 'tc', label: 'Tipo de Cambio (BNA)' },
 ];
@@ -797,7 +798,7 @@ function renderNav() {
     `<button class="${VIEW.tab===t.id && !VIEW.cargaId ? 'active':''}" onclick="goTab('${t.id}')">${t.label}</button>`
   ).join('');
 }
-function goTab(tabId) { VIEW = { tab: tabId, temporadaId: null, cargaId: null, subtab: 'articulos', expandedArticulo: null, estadoFiltro: null, articulosBusqueda: '', articulosTemporadaFiltro: null, articulosExpandido: null }; renderAll(); }
+function goTab(tabId) { VIEW = { tab: tabId, temporadaId: null, cargaId: null, subtab: 'articulos', expandedArticulo: null, estadoFiltro: null, articulosBusqueda: '', articulosTemporadaFiltro: null, articulosExpandido: null, catalogoBusqueda: '', catalogoExpandido: null }; renderAll(); }
 function openTemporada(id) { VIEW.temporadaId = id; VIEW.cargaId = null; VIEW.expandedArticulo = null; VIEW.estadoFiltro = null; renderAll(); }
 function closeTemporada() { VIEW.temporadaId = null; VIEW.cargaId = null; VIEW.expandedArticulo = null; renderAll(); }
 function setEstadoFiltro(value) { VIEW.estadoFiltro = value || null; renderAll(); }
@@ -838,6 +839,7 @@ function renderMain() {
   if (VIEW.tab === 'cargas' && VIEW.temporadaId!==null && !VIEW.cargaId) { app.innerHTML = viewCargasList(VIEW.temporadaId); return; }
   if (VIEW.tab === 'cargas' && VIEW.cargaId) { app.innerHTML = viewCargaDetail(VIEW.cargaId); return; }
   if (VIEW.tab === 'articulos_global') { app.innerHTML = viewArticulosGlobal(); return; }
+  if (VIEW.tab === 'catalogo') { app.innerHTML = viewCatalogo(); return; }
   if (VIEW.tab === 'categorias') { app.innerHTML = viewCategorias(); return; }
   if (VIEW.tab === 'tc') { app.innerHTML = viewTC(); return; }
 }
@@ -1847,6 +1849,164 @@ function subCosteo(cargaId) {
 /* ============================================================
    VISTA: CATEGORIAS
    ============================================================ */
+function setCatalogoBusqueda(value) { VIEW.catalogoBusqueda = value || ''; renderAll(); }
+function toggleCatalogoExpand(id) { VIEW.catalogoExpandido = (VIEW.catalogoExpandido === id) ? null : id; renderAll(); }
+
+function viewCatalogo() {
+  const busqueda = (VIEW.catalogoBusqueda || '').trim().toLowerCase();
+  let items = [...(DB.catalogo||[])].sort((a,b) => (a.cod_ketto||'zzz').localeCompare(b.cod_ketto||'zzz'));
+  if (busqueda) {
+    items = items.filter(c =>
+      (c.cod_ketto||'').toLowerCase().includes(busqueda) ||
+      (c.nombre||'').toLowerCase().includes(busqueda)
+    );
+  }
+
+  const rows = items.map(c => {
+    const expandido = VIEW.catalogoExpandido === c.id;
+    const ncms = (DB.catalogoNcm||[]).filter(n => n.catalogo_id === c.id);
+    const filaPrincipal = `<tr>
+      <td><button class="link" onclick="toggleCatalogoExpand(${c.id})" style="font-weight:bold;">${expandido?'▾':'▸'} ${esc(c.cod_ketto || '(sin código)')}</button></td>
+      <td>${esc(c.nombre)}</td>
+      <td>${esc(c.tipo_producto||'—')}</td>
+      <td>${esc(c.gsm||'—')}</td>
+      <td>${esc(c.proveedor||'—')}</td>
+      <td class="num">${ncms.length}</td>
+      <td><button class="link danger" onclick="deleteCatalogoItem(${c.id})">Eliminar</button></td>
+    </tr>`;
+
+    const ncmRows = ncms.map(n => `<tr>
+      <td><input value="${esc(n.ncm_real||'')}" onchange="updNcmCatalogo(${n.id},'ncm_real',this.value)" style="width:110px"></td>
+      <td><input value="${esc(n.ncm_declarar||'')}" onchange="updNcmCatalogo(${n.id},'ncm_declarar',this.value)" style="width:110px"></td>
+      <td><button class="link danger" onclick="deleteNcmCatalogo(${n.id})">Eliminar</button></td>
+    </tr>`).join('');
+
+    const filaDetalle = expandido ? `<tr><td colspan="7" style="padding:14px; background:#fafbfc;">
+      <div class="form-grid">
+        <div><label>Código</label><input value="${esc(c.cod_ketto||'')}" onchange="updCatalogo(${c.id},'cod_ketto',this.value)"></div>
+        <div><label>Descripción</label><input value="${esc(c.nombre||'')}" onchange="updCatalogo(${c.id},'nombre',this.value)"></div>
+        <div><label>Tipo</label>
+          <select onchange="updCatalogo(${c.id},'tipo_producto',this.value)">
+            <option value="" ${!c.tipo_producto?'selected':''}>—</option>
+            ${TIPOS_PRODUCTO.map(t=>`<option ${t===c.tipo_producto?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div><label>Marca</label><input value="${esc(c.marca||'')}" onchange="updCatalogo(${c.id},'marca',this.value)"></div>
+        <div><label>Ancho / Medida</label><input value="${esc(c.ancho||'')}" onchange="updCatalogo(${c.id},'ancho',this.value)"></div>
+        <div><label>GSM / GxU</label><input value="${esc(c.gsm||'')}" onchange="updCatalogo(${c.id},'gsm',this.value)"></div>
+        <div><label>Proveedor</label><input value="${esc(c.proveedor||'')}" onchange="updCatalogo(${c.id},'proveedor',this.value)"></div>
+        <div><label>Código proveedor</label><input value="${esc(c.cod_proveedor||'')}" onchange="updCatalogo(${c.id},'cod_proveedor',this.value)"></div>
+        <div><label>Composición real</label><input value="${esc(c.composicion_real||'')}" onchange="updCatalogo(${c.id},'composicion_real',this.value)"></div>
+        <div><label>Composición a declarar</label><input value="${esc(c.composicion_etiqueta||'')}" onchange="updCatalogo(${c.id},'composicion_etiqueta',this.value)"></div>
+      </div>
+      <h4 style="margin-top:16px;">NCM conocidos para este artículo</h4>
+      ${ncms.length ? `<table><thead><tr><th>NCM real</th><th>NCM a declarar</th><th></th></tr></thead><tbody>${ncmRows}</tbody></table>` : '<div class="muted" style="margin-bottom:8px;">Todavía no hay NCM guardados para este artículo.</div>'}
+      <div class="form-grid" style="margin-top:8px;">
+        <div><label>NCM real</label><input id="ncm_new_real_${c.id}" style="width:110px"></div>
+        <div><label>NCM a declarar</label><input id="ncm_new_declarar_${c.id}" style="width:110px"></div>
+        <div><button onclick="addNcmCatalogoManual(${c.id})">+ Agregar NCM</button></div>
+      </div>
+    </td></tr>` : '';
+
+    return filaPrincipal + filaDetalle;
+  }).join('');
+
+  return `
+  <div class="card">
+    <h2>Nuevo artículo en el catálogo</h2>
+    <div class="form-grid">
+      <div><label>Código</label><input id="cat_new_cod"></div>
+      <div><label>Descripción</label><input id="cat_new_nombre" placeholder="Ej: Tela Denim Azul"></div>
+      <div><button class="primary" onclick="addCatalogoManual()">+ Agregar al catálogo</button></div>
+    </div>
+    <p class="footer-note">Normalmente no hace falta cargar nada acá: cada vez que agregás un artículo nuevo en una carga, se guarda solo en este catálogo. Usá este formulario solo para precargar un artículo que todavía no usaste en ninguna carga.</p>
+  </div>
+  <div class="card">
+    <h2>Catálogo de artículos (${items.length}${busqueda ? ` de ${DB.catalogo.length}` : ''})</h2>
+    <div class="form-grid" style="margin-bottom:10px;">
+      <div><label>Buscar por código o descripción</label><input value="${esc(VIEW.catalogoBusqueda||'')}" oninput="setCatalogoBusqueda(this.value)" placeholder="Ej: 809 o DENIM"></div>
+    </div>
+    ${items.length === 0 ? '<div class="empty">No hay artículos que coincidan.</div>' : `
+    <div style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>Código</th><th>Descripción</th><th>Tipo</th><th>GSM</th><th>Proveedor</th><th class="num">NCM guardados</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    </div>`}
+    <p class="footer-note">Estos son los datos generales que se autocompletan al tipear el Código en un artículo nuevo. Los NCM guardados se sugieren, pero la cantidad de cada NCM siempre se carga aparte en cada carga (en "Ver ficha").</p>
+  </div>`;
+}
+
+async function addCatalogoManual() {
+  const cod = document.getElementById('cat_new_cod').value.trim();
+  const nombre = document.getElementById('cat_new_nombre').value.trim();
+  if (!nombre) { alert('Ingresá al menos la descripción'); return; }
+  try {
+    const created = await sbInsert('articulos_catalogo', { cod_ketto: cod || null, nombre });
+    DB.catalogo.push(created);
+    renderAll();
+  } catch (e) {
+    console.error('addCatalogoManual:', e);
+    alert('No se pudo guardar el artículo en el catálogo. Revisá tu conexión e intentá de nuevo.');
+  }
+}
+
+function updCatalogo(id, field, value) {
+  const c = DB.catalogo.find(x => x.id === id);
+  if (!c) return;
+  c[field] = value;
+  sbUpdate('articulos_catalogo', id, { [field]: value }).catch(e => console.warn('updCatalogo:', e));
+  renderAll();
+}
+
+async function deleteCatalogoItem(id) {
+  if (!confirm('¿Eliminar este artículo del catálogo? Los artículos ya cargados en cargas existentes no se ven afectados, solo dejan de estar enlazados al catálogo.')) return;
+  try {
+    await sbDelete('articulos_catalogo', id);
+    DB.catalogo = DB.catalogo.filter(c => c.id !== id);
+    DB.catalogoNcm = DB.catalogoNcm.filter(n => n.catalogo_id !== id);
+    DB.articulos.forEach(a => { if (a.catalogo_id === id) a.catalogo_id = null; });
+    renderAll();
+  } catch (e) {
+    console.error('deleteCatalogoItem:', e);
+    alert('No se pudo eliminar. Revisá tu conexión e intentá de nuevo.');
+  }
+}
+
+async function addNcmCatalogoManual(catalogoId) {
+  const real = document.getElementById('ncm_new_real_' + catalogoId).value.trim();
+  const declarar = document.getElementById('ncm_new_declarar_' + catalogoId).value.trim();
+  if (!real) { alert('Ingresá al menos el NCM real'); return; }
+  try {
+    const created = await sbInsert('articulos_catalogo_ncm', { catalogo_id: catalogoId, ncm_real: real, ncm_declarar: declarar || null });
+    DB.catalogoNcm.push(created);
+    renderAll();
+  } catch (e) {
+    console.error('addNcmCatalogoManual:', e);
+    alert('No se pudo guardar el NCM. Revisá tu conexión e intentá de nuevo.');
+  }
+}
+
+function updNcmCatalogo(id, field, value) {
+  const n = DB.catalogoNcm.find(x => x.id === id);
+  if (!n) return;
+  n[field] = value;
+  sbUpdate('articulos_catalogo_ncm', id, { [field]: value }).catch(e => console.warn('updNcmCatalogo:', e));
+  renderAll();
+}
+
+async function deleteNcmCatalogo(id) {
+  if (!confirm('¿Eliminar este NCM del catálogo?')) return;
+  try {
+    await sbDelete('articulos_catalogo_ncm', id);
+    DB.catalogoNcm = DB.catalogoNcm.filter(n => n.id !== id);
+    renderAll();
+  } catch (e) {
+    console.error('deleteNcmCatalogo:', e);
+    alert('No se pudo eliminar. Revisá tu conexión e intentá de nuevo.');
+  }
+}
+
 function viewCategorias() {
   const rows = DB.categorias.map(c => `<tr>
     <td>${esc(c.nombre)}</td>
