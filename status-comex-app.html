@@ -406,6 +406,8 @@ function migrate(db) {
     if (g.iva_usd === undefined) g.iva_usd = null;
     if (g.iva_adicional_usd === undefined) g.iva_adicional_usd = null;
   });
+  if (!db.catalogo) db.catalogo = [];
+  if (!db.catalogoNcm) db.catalogoNcm = [];
   if (!db.temporadas) db.temporadas = [];
   if (!db.nextId.temporadas) db.nextId.temporadas = (db.temporadas.reduce((max,t)=>Math.max(max,t.id),0) + 1);
   if (db.gastosHundidosPct === undefined) db.gastosHundidosPct = 8.5;
@@ -439,7 +441,7 @@ async function loadFromSupabase() {
   const app = document.getElementById('app');
   app.innerHTML = '<div style="padding:40px;text-align:center;color:#666">⏳ Cargando datos...</div>';
   try {
-    const [config, temporadas, cargas, articulos, categorias, gastos, tc_bna] = await Promise.all([
+    const [config, temporadas, cargas, articulos, categorias, gastos, tc_bna, catalogo, catalogoNcm] = await Promise.all([
       sbGet('config', '?id=eq.main'),
       sbGet('temporadas', '?order=id'),
       sbGetAll('cargas', '?order=id'),
@@ -447,12 +449,15 @@ async function loadFromSupabase() {
       sbGet('categorias', '?order=id'),
       sbGetAll('gastos', '?order=id'),
       sbGetAll('tc_bna', '?order=fecha'),
+      sbGetAll('articulos_catalogo', '?order=nombre'),
+      sbGetAll('articulos_catalogo_ncm', '?order=id'),
     ]);
     const cfg = config[0] || {};
     DB = migrate({
       nextId: cfg.next_id || { cargas: 41, articulos: 73, gastos: 310, categorias: 8, tc_bna: 1298, temporadas: 3 },
       gastosHundidosPct: cfg.gastos_hundidos_pct ?? 8.5,
       temporadas, cargas, articulos, categorias, gastos, tc_bna,
+      catalogo, catalogoNcm,
       _temporadaAutoMigrada: true,
     });
   } catch(e) {
@@ -1314,6 +1319,7 @@ function articuloDetailForm(a) {
       <div style="grid-column: span 1;"><label>Composición real</label><input value="${esc(a.composicion_real||'')}" onchange="updArticulo(${a.id},'composicion_real',this.value)"></div>
       <div style="grid-column: span 1;"><label>Composición a declarar en etiqueta</label><input value="${esc(a.composicion_etiqueta||'')}" onchange="updArticulo(${a.id},'composicion_etiqueta',this.value)"></div>
     </div>
+    ${a.tipo_producto === 'PRENDAS' ? articuloImagenSection(a) : ''}
     ${esTela ? desgloseNcmSection(a) : ''}
   </div>`;
 }
@@ -1322,7 +1328,7 @@ function desgloseNcmSection(a) {
   const lineas = a.desglose_ncm || [];
   const rows = lineas.map((d, idx) => `<tr>
     <td><input list="cat-ncm-list" value="${esc(d.categoria||'')}" onchange="updDesgloseNcm(${a.id},${idx},'categoria',this.value)" style="width:100px"></td>
-    <td><input value="${esc(d.ncm_real||'')}" onchange="updDesgloseNcm(${a.id},${idx},'ncm_real',this.value)" style="width:110px"></td>
+    <td><input list="ncm-conocidos-${a.id}" value="${esc(d.ncm_real||'')}" onchange="updDesgloseNcm(${a.id},${idx},'ncm_real',this.value)" style="width:110px"></td>
     <td><input value="${esc(d.ncm_declarar||'')}" onchange="updDesgloseNcm(${a.id},${idx},'ncm_declarar',this.value)" style="width:110px"></td>
     <td class="num"><input type="text" inputmode="decimal" value="${fmtNumEdit(d.qty_real)}" onchange="updDesgloseNcm(${a.id},${idx},'qty_real',parseNum(this.value))" style="text-align:right; width:100px"></td>
     <td class="num"><input type="text" inputmode="decimal" value="${fmtNumEdit(d.unitario_real)}" onchange="updDesgloseNcm(${a.id},${idx},'unitario_real',parseNumOrNull(this.value))" style="text-align:right; width:100px"></td>
@@ -1336,6 +1342,8 @@ function desgloseNcmSection(a) {
     <h4>Desglose de NCM por color / tipo</h4>
     <p class="footer-note">La composición es la misma para todos los colores; lo que cambia es la NCM según el acabado (blanco, teñido, hilo color, estampado) — y a veces también el precio real o de aduana de esa posición. Cargá cada posición como una línea, con su propia cantidad y precio.</p>
     ${CAT_NCM_DATALIST}
+    <datalist id="ncm-conocidos-${a.id}">${(DB.catalogoNcm||[]).filter(n=>n.catalogo_id===a.catalogo_id).map(n=>`<option value="${esc(n.ncm_real)}">`).join('')}</datalist>
+    <p class="footer-note">Los NCM que cargues acá quedan guardados en el catálogo de este artículo para sugerirlos automáticamente la próxima vez.</p>
     ${lineas.length ? `<div style="overflow-x:auto;"><table><thead><tr><th>Categoría</th><th>NCM real</th><th>NCM a declarar en BL</th><th class="num">Qty Real</th><th class="num">Unitario Real</th><th class="num">Qty Aduana</th><th class="num">Unitario Aduana</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">Sin líneas de NCM cargadas todavía.</div>'}
     <div style="margin-top:8px;"><button onclick="addDesgloseNcm(${a.id})">+ Agregar línea de NCM</button></div>
     ${lineas.length>0 ? `<p class="footer-note" style="margin-top:8px;">Qty Total Real (suma de líneas): ${fmtNum(totalReal)} — Qty Total Aduana (suma de líneas): ${fmtNum(totalAduana)}.</p>` : ''}
@@ -1354,6 +1362,9 @@ function updDesgloseNcm(articuloId, idx, field, value) {
   if (!a || !a.desglose_ncm || !a.desglose_ncm[idx]) return;
   a.desglose_ncm[idx][field] = value;
   sbUpdate('articulos', articuloId, { desglose_ncm: a.desglose_ncm }).catch(e => console.warn('updDesgloseNcm:', e));
+  if ((field === 'ncm_real' || field === 'ncm_declarar') && a.catalogo_id) {
+    upsertNcmCatalogo(a.catalogo_id, a.desglose_ncm[idx].ncm_real, a.desglose_ncm[idx].ncm_declarar);
+  }
   renderAll();
 }
 function deleteDesgloseNcm(articuloId, idx) {
@@ -1369,7 +1380,114 @@ function updDesgloseUnico(articuloId, field, value) {
   if (!a.desglose_ncm || a.desglose_ncm.length === 0) a.desglose_ncm = [{ categoria: '', ncm_real: '', ncm_declarar: '', qty_real: 0, unitario_real: null, qty_aduana: 0, unitario_aduana: null }];
   a.desglose_ncm[0][field] = value;
   sbUpdate('articulos', articuloId, { desglose_ncm: a.desglose_ncm }).catch(e => console.warn('updDesgloseUnico:', e));
+  if ((field === 'ncm_real' || field === 'ncm_declarar') && a.catalogo_id) {
+    upsertNcmCatalogo(a.catalogo_id, a.desglose_ncm[0].ncm_real, a.desglose_ncm[0].ncm_declarar);
+  }
   renderAll();
+}
+
+function claveCatalogo(nombre, codKetto) {
+  return (nombre||'').trim().toLowerCase() + '|' + ((codKetto||'').trim() || '__sin_cod__');
+}
+function buscarEnCatalogo(nombre, codKetto) {
+  const k = claveCatalogo(nombre, codKetto);
+  return (DB.catalogo||[]).find(c => claveCatalogo(c.nombre, c.cod_ketto) === k);
+}
+async function upsertCatalogoDesdeArticulo(a) {
+  try {
+    let cat = a.catalogo_id ? (DB.catalogo||[]).find(c=>c.id===a.catalogo_id) : buscarEnCatalogo(a.nombre, a.cod_ketto);
+    if (!cat) {
+      const row = {
+        nombre: a.nombre, cod_ketto: a.cod_ketto || null, proveedor: a.proveedor || null, cod_proveedor: a.cod_proveedor || null,
+        tipo_producto: a.tipo_producto || null, marca: a.marca || null, ancho: a.ancho || null, gsm: a.gsm || null,
+        un_medida: a.un_medida || null, composicion_real: a.composicion_real || null, composicion_etiqueta: a.composicion_etiqueta || null,
+      };
+      cat = await sbInsert('articulos_catalogo', row);
+      DB.catalogo.push(cat);
+    }
+    if (a.catalogo_id !== cat.id) {
+      a.catalogo_id = cat.id;
+      sbUpdate('articulos', a.id, { catalogo_id: cat.id }).catch(e => console.warn('link catalogo_id:', e));
+    }
+    return cat;
+  } catch (e) { console.warn('upsertCatalogoDesdeArticulo:', e); return null; }
+}
+async function upsertNcmCatalogo(catalogoId, ncmReal, ncmDeclarar) {
+  const real = (ncmReal||'').trim();
+  if (!catalogoId || !real) return;
+  const decl = (ncmDeclarar||'').trim();
+  const existe = (DB.catalogoNcm||[]).some(n => n.catalogo_id===catalogoId && (n.ncm_real||'').trim()===real && (n.ncm_declarar||'').trim()===decl);
+  if (existe) return;
+  try {
+    const created = await sbInsert('articulos_catalogo_ncm', { catalogo_id: catalogoId, ncm_real: real, ncm_declarar: decl || null });
+    DB.catalogoNcm.push(created);
+  } catch (e) { console.warn('upsertNcmCatalogo:', e); }
+}
+function aplicarCatalogo() {
+  const codInput = document.getElementById('af_cod_ketto');
+  const cod = codInput?.value.trim();
+  if (!cod) return;
+  const cat = (DB.catalogo||[]).find(c => (c.cod_ketto||'').trim().toLowerCase() === cod.toLowerCase());
+  if (!cat) return;
+  const nombreInput = document.getElementById('af_nombre');
+  if (nombreInput) nombreInput.value = cat.nombre || '';
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el && !el.value) el.value = v || ''; };
+  const tipoSel = document.getElementById('af_tipo_producto');
+  if (tipoSel && !tipoSel.value && cat.tipo_producto) { tipoSel.value = cat.tipo_producto; updateArticuloTipoFields(); }
+  setVal('af_marca', cat.marca);
+  setVal('af_ancho', cat.ancho);
+  setVal('af_gsm', cat.gsm);
+  setVal('af_proveedor', cat.proveedor);
+  setVal('af_cod_proveedor', cat.cod_proveedor);
+  setVal('af_composicion_real', cat.composicion_real);
+  setVal('af_composicion_etiqueta', cat.composicion_etiqueta);
+  const udm = document.getElementById('af_un_medida');
+  if (udm && !udm.value && cat.un_medida) udm.value = cat.un_medida;
+  const ncms = (DB.catalogoNcm||[]).filter(n => n.catalogo_id === cat.id);
+  if (ncms.length && tipoSel && tipoSel.value !== 'TELA') {
+    setVal('af_ncm_real_simple', ncms[0].ncm_real);
+    setVal('af_ncm_declarar_simple', ncms[0].ncm_declarar);
+  }
+}
+async function uploadArticuloImagen(file) {
+  if (!file) return null;
+  const ext = ((file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')) || 'jpg';
+  const path = `articulos/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+  const r = await fetch(`${SB_URL}/storage/v1/object/articulos-imagenes/${path}`, {
+    method: 'POST',
+    headers: { 'Authorization': SB_H['Authorization'], 'apikey': SB_KEY, 'Content-Type': file.type || 'application/octet-stream' },
+    body: file
+  });
+  if (r.status === 401 || r.status === 403) { handleAuthFailure(); throw new Error('Sesión vencida al subir imagen'); }
+  if (!r.ok) { const t = await r.text(); throw new Error('No se pudo subir la imagen: ' + t); }
+  return `${SB_URL}/storage/v1/object/public/articulos-imagenes/${path}`;
+}
+function articuloImagenSection(a) {
+  return `
+    <h4>Imagen</h4>
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+      ${a.imagen_url ? `<img src="${esc(a.imagen_url)}" style="width:96px;height:96px;object-fit:cover;border-radius:6px;border:1px solid var(--border);">` : '<div class="muted">Sin imagen cargada.</div>'}
+      <div>
+        <input type="file" id="af_imagen_edit_${a.id}" accept="image/png,image/jpeg,image/webp" onchange="handleArticuloImagenChange(${a.id})">
+        ${a.imagen_url ? `<div style="margin-top:6px;"><button class="link danger" onclick="quitarImagenArticulo(${a.id})">Quitar imagen</button></div>` : ''}
+      </div>
+    </div>`;
+}
+async function handleArticuloImagenChange(id) {
+  const input = document.getElementById('af_imagen_edit_' + id);
+  const file = input?.files && input.files[0];
+  if (!file) return;
+  try {
+    const url = await uploadArticuloImagen(file);
+    updArticulo(id, 'imagen_url', url);
+  } catch (e) {
+    console.error('handleArticuloImagenChange:', e);
+    alert('No se pudo subir la imagen. Probá de nuevo.');
+  }
+}
+function quitarImagenArticulo(id) {
+  if (!confirm('¿Quitar la imagen de este artículo?')) return;
+  updArticulo(id, 'imagen_url', null);
 }
 
 function subArticulos(cargaId) {
@@ -1377,7 +1495,7 @@ function subArticulos(cargaId) {
   const rows = arts.map(a => {
     const expanded = VIEW.expandedArticulo === a.id;
     const summary = `<tr>
-      <td>${esc(a.nombre)}</td>
+      <td>${a.imagen_url ? `<img src="${esc(a.imagen_url)}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;vertical-align:middle;margin-right:6px;">` : ''}${esc(a.nombre)}</td>
       <td class="num">${fmtNum(a.cbm)}</td>
       <td class="num">${fmtUSD(articuloFobUsd(a))}</td>
       <td class="num">${fmtNum(articuloQtyReal(a))}</td>
@@ -1395,14 +1513,17 @@ function subArticulos(cargaId) {
     <h2>Nuevo artículo</h2>
     <h3>Datos principales</h3>
     <div class="form-grid">
-      <div><label>Código</label><input id="af_cod_ketto"></div>
+      <div><label>Código</label><input id="af_cod_ketto" list="catalogo-codigos-list" onchange="aplicarCatalogo()"></div>
       <div><label>Descripción</label><input id="af_nombre" placeholder="Ej: Tela Denim Azul"></div>
       <div><label>Tipo</label><select id="af_tipo_producto" onchange="updateArticuloTipoFields()"><option value="">—</option>${TIPOS_PRODUCTO.map(t=>`<option>${t}</option>`).join('')}</select></div>
       <div><label>Unidad de medida</label><select id="af_un_medida" disabled><option value="">—</option></select></div>
       <div><label>Marca</label><input id="af_marca" disabled placeholder="Solo para Prendas"></div>
       <div><label>Ancho / Medida</label><input id="af_ancho" disabled placeholder="Solo para Tela o Blanquería"></div>
       <div><label>GSM / GxU</label><input id="af_gsm"></div>
+      <div id="af_imagen_wrap" style="display:none;"><label>Imagen del artículo</label><input type="file" id="af_imagen" accept="image/png,image/jpeg,image/webp"></div>
     </div>
+    <datalist id="catalogo-codigos-list">${(DB.catalogo||[]).filter(c=>c.cod_ketto).map(c=>`<option value="${esc(c.cod_ketto)}">${esc(c.nombre)}</option>`).join('')}</datalist>
+    <p class="footer-note">Si el código ya existe en el catálogo, al tipearlo se autocompleta la descripción junto con composición, NCM habitual y demás datos.</p>
     <h3>Identificación / Proveedor</h3>
     <div class="form-grid">
       <div><label>Proveedor</label><input id="af_proveedor"></div>
@@ -1455,6 +1576,8 @@ function updateArticuloTipoFields() {
     udm.innerHTML = '<option value="">—</option>' + opts.map(u=>`<option>${u}</option>`).join('');
     udm.disabled = opts.length === 0;
   }
+  const imagenWrap = document.getElementById('af_imagen_wrap');
+  if (imagenWrap) imagenWrap.style.display = (tipo === 'PRENDAS') ? '' : 'none';
   const esTela = tipo === 'TELA';
   document.querySelectorAll('.aduana-simple').forEach(el => { el.style.display = esTela ? 'none' : ''; });
   const nota = document.getElementById('af_aduana_tela_note');
@@ -1490,6 +1613,12 @@ async function addArticulo(cargaId) {
     qty_aduana: num('af_qty_aduana_simple'),
     unitario_aduana: numOrNull('af_unitario_aduana'),
   }];
+  let imagenUrl = null;
+  const imgInput = document.getElementById('af_imagen');
+  if (tipoSel === 'PRENDAS' && imgInput && imgInput.files && imgInput.files[0]) {
+    try { imagenUrl = await uploadArticuloImagen(imgInput.files[0]); }
+    catch (e) { console.error('uploadArticuloImagen:', e); alert('No se pudo subir la imagen; el artículo se guarda sin imagen. Podés agregarla después desde "Ver ficha".'); }
+  }
   const row = {
     carga_id: cargaId, nombre,
     cbm: num('af_cbm'),
@@ -1511,11 +1640,16 @@ async function addArticulo(cargaId) {
     desglose_ncm: desgloseInicial,
     composicion_real: val('af_composicion_real'),
     composicion_etiqueta: val('af_composicion_etiqueta'),
+    imagen_url: imagenUrl,
   };
   try {
     const created = await sbInsert('articulos', row);
     DB.articulos.push(created);
     renderAll();
+    const cat = await upsertCatalogoDesdeArticulo(created);
+    if (cat) {
+      for (const d of desgloseInicial) { await upsertNcmCatalogo(cat.id, d.ncm_real, d.ncm_declarar); }
+    }
   } catch (e) {
     console.error('addArticulo:', e);
     alert('No se pudo guardar el artículo "' + nombre + '". Revisá tu conexión e intentá de nuevo.');
