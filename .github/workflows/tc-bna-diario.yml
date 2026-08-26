@@ -1,0 +1,22 @@
+name: Actualizar TC BNA diario
+
+on:
+  schedule:
+    # 22:00 UTC = 19:00 hora Argentina (todos los dias, para cubrir tambien fin de semana con propagacion)
+    - cron: '0 22 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Actualizar tc_bna en Supabase
+        run: node scripts/actualizar-tc-bna.js
