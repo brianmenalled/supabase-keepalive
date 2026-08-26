@@ -639,6 +639,56 @@ const ESTADOS_CARGA = ['Coordinación', 'Embarcada / Tránsito', 'Arribada', 'Na
 const ESTADO_BADGE = { 'Coordinación': 'b1', 'Embarcada / Tránsito': 'b2', 'Arribada': 'b3', 'Nacionalizada': 'b4', 'Depósito': 'b6', 'Costeo cerrado': 'b5' };
 const TIPOS_CARGA = ['40HQ', '40STD', '20STD', 'LCL'];
 const TIPOS_PRODUCTO = ['BLANQUERIA', 'PRENDAS', 'TELA'];
+
+// Columnas exportables del listado de Cargas (orden = orden real en la tabla)
+const COLUMNAS_CARGAS_DEF = [
+  { key: 'orden', label: 'N° int.' },
+  { key: 'bl', label: 'BL' },
+  { key: 'buque', label: 'Buque' },
+  { key: 'proveedores', label: 'Proveedor(es)' },
+  { key: 'articulos', label: 'Artículo(s)' },
+  { key: 'embarque', label: 'Embarque' },
+  { key: 'eta', label: 'ETA' },
+  { key: 'estado', label: 'Estado' },
+  { key: 'nart', label: 'Cant. artículos' },
+  { key: 'fob', label: 'FOB Real (USD)' },
+  { key: 'gastos', label: 'Gastos (USD)' },
+  { key: 'hundidos', label: 'Gastos Hundidos (USD)' },
+  { key: 'pend', label: 'Pendientes' },
+  { key: 'total', label: 'Total (USD)' },
+];
+let COLUMNAS_CARGAS_VISIBLES = Object.fromEntries(COLUMNAS_CARGAS_DEF.map(c => [c.key, true]));
+let MOSTRAR_PANEL_COLUMNAS_CARGAS = false;
+
+function toggleColumnaCarga(key, checked) {
+  COLUMNAS_CARGAS_VISIBLES[key] = checked;
+  renderAll();
+}
+function togglePanelColumnasCargas() {
+  MOSTRAR_PANEL_COLUMNAS_CARGAS = !MOSTRAR_PANEL_COLUMNAS_CARGAS;
+  renderAll();
+}
+function marcarTodasColumnasCarga(valor) {
+  COLUMNAS_CARGAS_DEF.forEach(c => COLUMNAS_CARGAS_VISIBLES[c.key] = valor);
+  renderAll();
+}
+function panelColumnasCargasHtml() {
+  if (!MOSTRAR_PANEL_COLUMNAS_CARGAS) return '';
+  return `<div class="no-print" style="border:1px solid var(--border); border-radius:8px; padding:12px 14px; margin-top:10px; background:#fafbfc;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <b style="font-size:13px;">Columnas a incluir en el PDF</b>
+      <div>
+        <button class="link" onclick="marcarTodasColumnasCarga(true)">Marcar todas</button>
+        <button class="link" onclick="marcarTodasColumnasCarga(false)">Desmarcar todas</button>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:6px;">
+      ${COLUMNAS_CARGAS_DEF.map(c => `<label style="font-size:12px; font-weight:normal; display:flex; align-items:center; gap:5px;">
+        <input type="checkbox" ${COLUMNAS_CARGAS_VISIBLES[c.key] ? 'checked' : ''} onchange="toggleColumnaCarga('${c.key}', this.checked)"> ${esc(c.label)}
+      </label>`).join('')}
+    </div>
+  </div>`;
+}
 const CATEGORIAS_NCM = ['Blanco', 'Teñido', 'Hilo color', 'Estampado'];
 const CAT_NCM_DATALIST = `<datalist id="cat-ncm-list">${CATEGORIAS_NCM.map(c=>`<option value="${c}">`).join('')}</datalist>`;
 function marcaHabilitada(tipo) { return tipo === 'PRENDAS'; }
@@ -1101,24 +1151,31 @@ function viewCargasList(temporadaId) {
           <option value="">Todos los estados</option>
           ${ESTADOS_CARGA.map(e=>`<option ${e===VIEW.estadoFiltro?'selected':''}>${e}</option>`).join('')}
         </select>
+        <button onclick="togglePanelColumnasCargas()">⚙ Columnas</button>
         <button onclick="window.print()">🖨 Exportar a PDF</button>
       </div>
     </div>
+    ${panelColumnasCargasHtml()}
     <div class="grid2" style="margin-top:14px;">
       <div class="muted">FOB real total: <b>${fmtUSD(totalFobReal)}</b></div>
       <div class="muted">Gastos pagados total: <b>${fmtUSD(totalGastos)}</b></div>
       <div class="muted">Gastos hundidos total: <b>${fmtUSD(totalHundidos)}</b></div>
       <div class="muted" style="grid-column: 1 / -1;">Costo total: <b>${fmtUSD(totalGeneral)}</b></div>
     </div>
-    ${cargasFiltradas.length === 0 ? '<div class="empty">No hay cargas que coincidan con el filtro aplicado.</div>' : `
-    <div style="overflow-x:auto; margin-top:10px;">
-    <table class="compact fixed-cols">
-      <colgroup>
+    ${cargasFiltradas.length === 0 ? '<div class="empty">No hay cargas que coincidan con el filtro aplicado.</div>' : (() => {
+      const hayOcultas = COLUMNAS_CARGAS_DEF.some(c => !COLUMNAS_CARGAS_VISIBLES[c.key]);
+      const ocultarCss = COLUMNAS_CARGAS_DEF.map((c, i) => COLUMNAS_CARGAS_VISIBLES[c.key] ? null : `#cargas-tabla-export th:nth-child(${i+1}), #cargas-tabla-export td:nth-child(${i+1})`).filter(Boolean).join(', ');
+      const colgroup = hayOcultas ? '' : `<colgroup>
         <col style="width:4%"><col style="width:9%"><col style="width:8%"><col style="width:9%">
         <col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:7%">
         <col style="width:3%"><col style="width:8%"><col style="width:8%"><col style="width:8%">
         <col style="width:4%"><col style="width:9%"><col style="width:5%">
-      </colgroup>
+      </colgroup>`;
+      return `
+    ${ocultarCss ? `<style>${ocultarCss} { display: none; }</style>` : ''}
+    <div style="overflow-x:auto; margin-top:10px;">
+    <table id="cargas-tabla-export" class="compact${hayOcultas ? '' : ' fixed-cols'}">
+      ${colgroup}
       <thead><tr>
         <th>N° int.</th><th>BL</th><th>Buque</th><th>Proveedor(es)</th><th>Artículo(s)</th>
         <th>Embarque</th><th>ETA</th><th>Estado</th>
@@ -1127,7 +1184,8 @@ function viewCargasList(temporadaId) {
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    </div>`}
+    </div>`;
+    })()}
     <p class="footer-note">El costo total solo incluye gastos marcados como "Pagado". Los pendientes se muestran aparte y no afectan el costeo hasta que se paguen. "Embarque" muestra la fecha real; si todavía no la tenés, muestra el ETD estimado.</p>
   </div>`;
 }
