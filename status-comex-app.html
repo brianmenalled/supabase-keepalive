@@ -931,6 +931,15 @@ function goTab(tabId) { VIEW = { tab: tabId, temporadaId: null, cargaId: null, s
 function openTemporada(id) { VIEW.temporadaId = id; VIEW.cargaId = null; VIEW.expandedArticulo = null; VIEW.estadoFiltro = null; renderAll(); }
 function closeTemporada() { VIEW.temporadaId = null; VIEW.cargaId = null; VIEW.expandedArticulo = null; renderAll(); }
 function setEstadoFiltro(value) { VIEW.estadoFiltro = value || null; renderAll(); }
+function setCargasOrden(campo) {
+  if (VIEW.cargasOrdenCampo === campo) {
+    VIEW.cargasOrdenAsc = !(VIEW.cargasOrdenAsc !== false);
+  } else {
+    VIEW.cargasOrdenCampo = campo;
+    VIEW.cargasOrdenAsc = true;
+  }
+  renderAll();
+}
 function setArticulosBusqueda(value) { VIEW.articulosBusqueda = value || ''; renderAll(); }
 function setArticulosTemporadaFiltro(value) { VIEW.articulosTemporadaFiltro = (value==='todas') ? 'todas' : Number(value); renderAll(); }
 function setArticulosTipoFiltro(value) { VIEW.articulosTipoFiltro = value || 'todos'; renderAll(); }
@@ -1177,16 +1186,34 @@ function viewCargasList(temporadaId) {
   const temporada = temporadaId > 0 ? DB.temporadas.find(t=>t.id===temporadaId) : null;
   const temporadaNombre = temporadaId > 0 ? (temporada ? temporada.nombre : '—') : '(Sin temporada asignada)';
   const embarqueDeCarga = c => c.fecha_embarque || c.etd || null;
+  const campoOrdenCargas = VIEW.cargasOrdenCampo || 'eta';
+  const ordenCargasAsc = VIEW.cargasOrdenAsc !== false;
+  const valorOrdenCarga = (c) => {
+    switch (campoOrdenCargas) {
+      case 'orden': return c.nro_orden_naviera || null;
+      case 'bl': return c.bl || null;
+      case 'embarque': return embarqueDeCarga(c);
+      case 'eta':
+      default: return c.eta || null;
+    }
+  };
+  const indicadorOrdenCargas = (campo) => campoOrdenCargas === campo ? (ordenCargasAsc ? ' ▲' : ' ▼') : '';
   const cargasFiltradas = DB.cargas
     .filter(c => (c.temporada_id||0) === temporadaId)
     .filter(c => !VIEW.estadoFiltro || c.estado === VIEW.estadoFiltro)
     .slice()
     .sort((a, b) => {
-      const fa = embarqueDeCarga(a), fb = embarqueDeCarga(b);
-      if (!fa && !fb) return 0;
-      if (!fa) return 1;
-      if (!fb) return -1;
-      return fa < fb ? -1 : (fa > fb ? 1 : 0);
+      const va = valorOrdenCarga(a), vb = valorOrdenCarga(b);
+      if (!va && !vb) return 0;
+      if (!va) return 1;
+      if (!vb) return -1;
+      let cmp;
+      if (campoOrdenCargas === 'orden' || campoOrdenCargas === 'bl') {
+        cmp = String(va).localeCompare(String(vb), undefined, { numeric: true });
+      } else {
+        cmp = va < vb ? -1 : (va > vb ? 1 : 0);
+      }
+      return ordenCargasAsc ? cmp : -cmp;
     });
 
   let totalFobReal = 0, totalGastos = 0, totalHundidos = 0, totalGeneral = 0;
@@ -1272,8 +1299,12 @@ function viewCargasList(temporadaId) {
     <table id="cargas-tabla-export" class="compact${hayOcultas ? '' : ' fixed-cols'}">
       ${colgroup}
       <thead><tr>
-        <th>N° int.</th><th>BL</th><th>Buque</th><th>Proveedor(es)</th><th>Artículo(s)</th>
-        <th>Embarque</th><th>ETA</th><th>Estado</th>
+        <th onclick="setCargasOrden('orden')" style="cursor:pointer;" title="Ordenar por N° int.">N° int.${indicadorOrdenCargas('orden')}</th>
+        <th onclick="setCargasOrden('bl')" style="cursor:pointer;" title="Ordenar por BL">BL${indicadorOrdenCargas('bl')}</th>
+        <th>Buque</th><th>Proveedor(es)</th><th>Artículo(s)</th>
+        <th onclick="setCargasOrden('embarque')" style="cursor:pointer;" title="Ordenar por Embarque">Embarque${indicadorOrdenCargas('embarque')}</th>
+        <th onclick="setCargasOrden('eta')" style="cursor:pointer;" title="Ordenar por ETA">ETA${indicadorOrdenCargas('eta')}</th>
+        <th>Estado</th>
         <th class="num">Art.</th><th class="num">FOB Real (USD)</th><th class="num">Gastos (USD)</th><th class="num">Gastos Hundidos (USD)</th><th></th>
         <th class="num">Total (USD)</th><th class="no-print"></th>
       </tr></thead>
@@ -1650,6 +1681,7 @@ function subArticulos(cargaId) {
   const rows = arts.map(a => {
     const expanded = VIEW.expandedArticulo === a.id;
     const summary = `<tr>
+      <td>${esc(a.cod_ketto || '—')}</td>
       <td>${a.imagen_url ? `<img src="${esc(a.imagen_url)}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;vertical-align:middle;margin-right:6px;">` : ''}${esc(a.nombre)}</td>
       <td class="num">${fmtNum(a.cbm)}</td>
       <td class="num">${fmtUSD(articuloFobUsd(a))}</td>
@@ -1660,7 +1692,7 @@ function subArticulos(cargaId) {
         <button class="link danger" onclick="deleteArticulo(${a.id})">Eliminar</button>
       </td>
     </tr>`;
-    const detail = expanded ? `<tr><td colspan="6" class="detail-cell">${articuloDetailForm(a)}</td></tr>` : '';
+    const detail = expanded ? `<tr><td colspan="7" class="detail-cell">${articuloDetailForm(a)}</td></tr>` : '';
     return summary + detail;
   }).join('');
   return `
@@ -1715,7 +1747,7 @@ function subArticulos(cargaId) {
   </div>
   <div class="card">
     ${arts.length===0 ? '<div class="empty">Sin artículos cargados.</div>' : `
-    <table><thead><tr><th>Artículo</th><th class="num">CBM</th><th class="num">FOB USD</th><th class="num">Qty real</th><th>Proveedor</th><th></th></tr></thead>
+    <table><thead><tr><th>Código</th><th>Artículo</th><th class="num">CBM</th><th class="num">FOB USD</th><th class="num">Qty real</th><th>Proveedor</th><th></th></tr></thead>
     <tbody>${rows}</tbody></table>`}
   </div>`;
 }
