@@ -877,15 +877,19 @@ function costeoDeCarga(carga_id) {
     const fobUsd = articuloFobUsd(a);
     const pctCBM = sumCBM ? Number(a.cbm) / sumCBM : 0;
     const pctFOB = sumFOB ? articuloFobAduana(a) / sumFOB : 0;
-    const asignado = pctCBM * bucketCBM + pctFOB * bucketFOB;
+    const asignadoCBM = pctCBM * bucketCBM;
+    const asignadoFOB = pctFOB * bucketFOB;
+    const asignado = asignadoCBM + asignadoFOB;
     const costoBase = fobUsd + asignado;
     const hundidosMonto = costoBase * (pctHundidos / 100);
     const costoTotal = costoBase + hundidosMonto;
     const cantidadUsada = articuloQtyReal(a);
     const fobUnitario = cantidadUsada ? fobUsd / cantidadUsada : 0;
+    const asignadoCBMUnitario = cantidadUsada ? asignadoCBM / cantidadUsada : 0;
+    const asignadoFOBUnitario = cantidadUsada ? asignadoFOB / cantidadUsada : 0;
     const costoBaseUnitario = cantidadUsada ? costoBase / cantidadUsada : 0;
     const costoUnitario = cantidadUsada ? costoTotal / cantidadUsada : 0;
-    return { ...a, fob_usd: fobUsd, pctCBM, pctFOB, asignado, costoBase, hundidosMonto, costoTotal, cantidadUsada, fobUnitario, costoBaseUnitario, costoUnitario };
+    return { ...a, fob_usd: fobUsd, pctCBM, pctFOB, asignadoCBM, asignadoFOB, asignado, asignadoCBMUnitario, asignadoFOBUnitario, costoBase, hundidosMonto, costoTotal, cantidadUsada, fobUnitario, costoBaseUnitario, costoUnitario };
   });
 
   return { detalle, bucketCBM, bucketFOB, totalGastosUSD, pendientesARS, pendientesCount, sinCategoria, sinTC, sumCBM, sumFOB, pctHundidos };
@@ -1958,7 +1962,10 @@ function subCosteo(cargaId) {
     <td class="num">${fmtUSD(d.fobUnitario)}</td>
     <td class="num">${fmtPct(d.pctCBM)}</td>
     <td class="num">${fmtPct(d.pctFOB)}</td>
-    <td class="num">${fmtUSD(d.asignado)}</td>
+    <td class="num">${fmtUSD(d.asignadoCBM)}</td>
+    <td class="num">${fmtUSD(d.asignadoCBMUnitario)}</td>
+    <td class="num">${fmtUSD(d.asignadoFOB)}</td>
+    <td class="num">${fmtUSD(d.asignadoFOBUnitario)}</td>
     <td class="num">${fmtUSD(d.costoBase)}</td>
     <td class="num">${fmtUSD(d.hundidosMonto)}</td>
     <td class="num"><b>${fmtUSD(d.costoTotal)}</b></td>
@@ -1986,12 +1993,14 @@ function subCosteo(cargaId) {
     <div style="overflow-x:auto;">
     <table><thead><tr>
       <th>Artículo</th><th class="num">FOB Real USD</th><th class="num">FOB Unitario USD</th>
-      <th class="num">% CBM</th><th class="num">% FOB Aduana</th><th class="num">Gastos asignados</th>
+      <th class="num">% CBM</th><th class="num">% FOB Aduana</th>
+      <th class="num">Gastos CBM (total)</th><th class="num">Gastos CBM (unit.)</th>
+      <th class="num">Nacionalización (total)</th><th class="num">Nacionalización (unit.)</th>
       <th class="num">Costo base USD</th><th class="num">Gastos hundidos (${r.pctHundidos}%)</th><th class="num">Costo total USD</th>
       <th class="num">Qty real</th><th class="num">Costo unitario USD</th>
     </tr></thead><tbody>${rows}</tbody></table>
     </div>`}
-    <p class="footer-note">Costo total = FOB real + gastos generales (CBM) + nacionalización y ajuste de valor (FOB Aduana) + ${r.pctHundidos}% de gastos hundidos. El costo unitario usa la Qty Total Real de cada artículo.</p>
+    <p class="footer-note">Costo total = FOB real + gastos generales (CBM) + nacionalización y ajuste de valor (FOB Aduana) + ${r.pctHundidos}% de gastos hundidos. "Total" es el monto asignado a todo el artículo; "unit." es ese mismo monto dividido por la Qty Total Real. El costo unitario final usa la Qty Total Real de cada artículo.</p>
   </div>`;
 }
 
