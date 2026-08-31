@@ -836,15 +836,15 @@ let VIEW = { tab: 'cargas', temporadaId: null, cargaId: null, subtab: 'articulos
 
 const TABS = [
   { id: 'cargas', label: 'Cargas' },
-  { id: 'articulos_global', label: 'Artículos' },
-  { id: 'catalogo', label: 'Catálogo' },
+  { id: 'articulos_global', label: 'Costos', adminOnly: true },
+  { id: 'catalogo', label: 'Artículos' },
   { id: 'categorias', label: 'Categorías' },
   { id: 'tc', label: 'Tipo de Cambio (BNA)' },
 ];
 
 function renderNav() {
   const nav = document.getElementById('mainNav');
-  nav.innerHTML = TABS.map(t =>
+  nav.innerHTML = TABS.filter(t => !t.adminOnly || isAdmin()).map(t =>
     `<button class="${VIEW.tab===t.id && !VIEW.cargaId ? 'active':''}" onclick="goTab('${t.id}')">${t.label}</button>`
   ).join('');
 }
@@ -854,6 +854,7 @@ function closeTemporada() { VIEW.temporadaId = null; VIEW.cargaId = null; VIEW.e
 function setEstadoFiltro(value) { VIEW.estadoFiltro = value || null; renderAll(); }
 function setArticulosBusqueda(value) { VIEW.articulosBusqueda = value || ''; renderAll(); }
 function setArticulosTemporadaFiltro(value) { VIEW.articulosTemporadaFiltro = (value==='todas') ? 'todas' : Number(value); renderAll(); }
+function setArticulosTipoFiltro(value) { VIEW.articulosTipoFiltro = value || 'todos'; renderAll(); }
 function toggleArticuloGlobal(clave) { VIEW.articulosExpandido = (VIEW.articulosExpandido === clave) ? null : clave; renderAll(); }
 function openCarga(id, subtab) {
   const c = DB.cargas.find(x=>x.id===id);
@@ -888,7 +889,10 @@ function renderMain() {
   if (VIEW.tab === 'cargas' && VIEW.temporadaId===null && !VIEW.cargaId) { app.innerHTML = viewTemporadasList(); return; }
   if (VIEW.tab === 'cargas' && VIEW.temporadaId!==null && !VIEW.cargaId) { app.innerHTML = viewCargasList(VIEW.temporadaId); return; }
   if (VIEW.tab === 'cargas' && VIEW.cargaId) { app.innerHTML = viewCargaDetail(VIEW.cargaId); return; }
-  if (VIEW.tab === 'articulos_global') { app.innerHTML = viewArticulosGlobal(); return; }
+  if (VIEW.tab === 'articulos_global') {
+    if (!isAdmin()) { app.innerHTML = '<div class="empty">Esta sección es solo para administradores.</div>'; return; }
+    app.innerHTML = viewArticulosGlobal(); return;
+  }
   if (VIEW.tab === 'catalogo') { app.innerHTML = viewCatalogo(); return; }
   if (VIEW.tab === 'categorias') { app.innerHTML = viewCategorias(); return; }
   if (VIEW.tab === 'tc') { app.innerHTML = viewTC(); return; }
@@ -897,18 +901,20 @@ function renderMain() {
 /* ============================================================
    VISTA: ARTICULOS (global, por código, ponderado entre BLs)
    ============================================================ */
-function articulosPorCodigo(temporadaFiltro) {
+function articulosPorCodigo(temporadaFiltro, tipoFiltro) {
   const grupos = {};
   const cargasFiltradas = temporadaFiltro === 'todas' ? DB.cargas : DB.cargas.filter(c => (c.temporada_id||0) === temporadaFiltro);
   for (const carga of cargasFiltradas) {
     const cost = costeoDeCarga(carga.id);
     for (const d of cost.detalle) {
+      if (tipoFiltro && tipoFiltro !== 'todos' && (d.tipo_producto || '') !== tipoFiltro) continue;
       const clave = (d.cod_ketto || '').trim() || `(sin código) ${d.nombre}`;
-      if (!grupos[clave]) grupos[clave] = { codigo: d.cod_ketto || '', descripcion: d.nombre, instancias: [] };
+      if (!grupos[clave]) grupos[clave] = { codigo: d.cod_ketto || '', descripcion: d.nombre, tipoProducto: d.tipo_producto || '', instancias: [] };
       grupos[clave].instancias.push({
         cargaId: carga.id, bl: carga.bl, temporadaId: carga.temporada_id || 0,
         fobReal: d.fob_usd, fobUnitario: d.fobUnitario,
         costoTotal: d.costoTotal, cantidad: d.cantidadUsada, costoUnitario: d.costoUnitario,
+        provisorio: carga.estado !== 'Costeo cerrado',
       });
     }
   }
@@ -918,7 +924,8 @@ function articulosPorCodigo(temporadaFiltro) {
     const sumCantidad = g.instancias.reduce((s,i)=>s+i.cantidad,0);
     const costoUnitarioPonderado = sumCantidad ? sumCosto/sumCantidad : 0;
     const fobUnitarioPonderado = sumCantidad ? sumFobReal/sumCantidad : 0;
-    return { ...g, sumCosto, sumFobReal, sumCantidad, costoUnitarioPonderado, fobUnitarioPonderado };
+    const provisorio = g.instancias.some(i => i.provisorio);
+    return { ...g, sumCosto, sumFobReal, sumCantidad, costoUnitarioPonderado, fobUnitarioPonderado, provisorio };
   }).sort((a,b) => (a.codigo||'zzz').localeCompare(b.codigo||'zzz', undefined, {numeric:true}));
 }
 
@@ -928,7 +935,8 @@ function viewArticulosGlobal() {
     // Por defecto, la temporada mas reciente (la de mayor id) — para no ponderar sin querer entre años distintos.
     VIEW.articulosTemporadaFiltro = DB.temporadas.length ? DB.temporadas.reduce((max,t)=>t.id>max.id?t:max, DB.temporadas[0]).id : 'todas';
   }
-  let grupos = articulosPorCodigo(VIEW.articulosTemporadaFiltro);
+  const tipoFiltro = VIEW.articulosTipoFiltro || 'todos';
+  let grupos = articulosPorCodigo(VIEW.articulosTemporadaFiltro, tipoFiltro);
   if (busqueda) {
     grupos = grupos.filter(g => (g.codigo||'').toLowerCase().includes(busqueda) || (g.descripcion||'').toLowerCase().includes(busqueda));
   }
@@ -938,25 +946,26 @@ function viewArticulosGlobal() {
     const expandible = g.instancias.length > 1;
     const expandido = expandible && VIEW.articulosExpandido === clave;
     const blsHtml = g.instancias
-      .map(i => `<a onclick="event.stopPropagation(); openCarga(${i.cargaId},'gastos')" title="Ir al detalle de gastos">${esc(i.bl||'(Sin BL)')}</a>`)
+      .map(i => `<a onclick="event.stopPropagation(); openCarga(${i.cargaId},'gastos')" title="Ir al detalle de gastos">${esc(i.bl||'(Sin BL)')}${i.provisorio ? ' <span class="badge b3" style="font-size:9px;">Provisorio</span>' : ''}</a>`)
       .join(', ');
     const codigoCelda = expandible
       ? `<button class="link" onclick="toggleArticuloGlobal('${clave.replace(/'/g,"\\'")}')" style="font-weight:bold;">${expandido?'▾':'▸'} ${esc(g.codigo || '—')}</button>`
       : `<b>${esc(g.codigo || '—')}</b>`;
+    const provisorioBadge = g.provisorio ? ' <span class="badge b3" title="Incluye al menos un BL sin Costeo cerrado; el valor puede cambiar">Provisorio</span>' : '';
     const filaPrincipal = `<tr>
       <td>${codigoCelda}</td>
       <td>${esc(g.descripcion)}</td>
       <td>${blsHtml}</td>
       <td class="num">${fmtNum(g.sumCantidad)}</td>
       <td class="num">${fmtUSD(g.fobUnitarioPonderado)}</td>
-      <td class="num"><b>${fmtUSD(g.costoUnitarioPonderado)}</b>${expandible ? ' <span class="muted" title="Promedio ponderado por cantidad entre varios BL">⚖</span>' : ''}</td>
+      <td class="num"><b>${fmtUSD(g.costoUnitarioPonderado)}</b>${expandible ? ' <span class="muted" title="Promedio ponderado por cantidad entre varios BL">⚖</span>' : ''}${provisorioBadge}</td>
     </tr>`;
     const filaDetalle = expandido ? `<tr class="no-print-collapse"><td colspan="6" style="padding:0; background:#fafbfc;">
       <table class="compact" style="margin:6px 10px; width:calc(100% - 20px);">
         <thead><tr><th>BL</th><th class="num">Cantidad</th><th class="num">FOB Real Unitario (USD)</th><th class="num">Costo Unitario (USD)</th></tr></thead>
         <tbody>
           ${g.instancias.map(i => `<tr>
-            <td><a onclick="openCarga(${i.cargaId},'gastos')">${esc(i.bl||'(Sin BL)')}</a></td>
+            <td><a onclick="openCarga(${i.cargaId},'gastos')">${esc(i.bl||'(Sin BL)')}</a>${i.provisorio ? ' <span class="badge b3" style="font-size:9px;">Provisorio</span>' : ''}</td>
             <td class="num">${fmtNum(i.cantidad)}</td>
             <td class="num">${fmtUSD(i.fobUnitario)}</td>
             <td class="num">${fmtUSD(i.costoUnitario)}</td>
@@ -975,6 +984,10 @@ function viewArticulosGlobal() {
   const temporadaFiltroNombre = VIEW.articulosTemporadaFiltro === 'todas' ? 'Todas las temporadas'
     : VIEW.articulosTemporadaFiltro === 0 ? '(Sin temporada asignada)'
     : (DB.temporadas.find(t=>t.id===VIEW.articulosTemporadaFiltro)?.nombre || '—');
+  const opcionesTipo = `
+    <option value="todos" ${tipoFiltro==='todos'?'selected':''}>Todos los tipos</option>
+    ${TIPOS_PRODUCTO.map(t=>`<option value="${t}" ${t===tipoFiltro?'selected':''}>${t}</option>`).join('')}
+  `;
 
   return `
   <div class="card no-print">
@@ -983,12 +996,15 @@ function viewArticulosGlobal() {
       <div><label>Temporada <span class="muted">(el costo ponderado solo mezcla BL dentro de la misma temporada)</span></label>
         <select onchange="setArticulosTemporadaFiltro(this.value)">${opcionesTemporada}</select>
       </div>
+      <div><label>Tipo de artículo</label>
+        <select onchange="setArticulosTipoFiltro(this.value)">${opcionesTipo}</select>
+      </div>
       <div><label>Buscar por código o descripción</label><input value="${esc(VIEW.articulosBusqueda||'')}" oninput="setArticulosBusqueda(this.value)" placeholder="Ej: 809 o PLUSH"></div>
     </div>
   </div>
   <div class="card">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-      <h2 style="margin:0;">Artículos (${grupos.length}) <span class="muted" style="font-weight:normal; font-size:12px;">· ${esc(temporadaFiltroNombre)}</span></h2>
+      <h2 style="margin:0;">Artículos (${grupos.length}) <span class="muted" style="font-weight:normal; font-size:12px;">· ${esc(temporadaFiltroNombre)}${tipoFiltro!=='todos' ? ' · '+esc(tipoFiltro) : ''}</span></h2>
       <button class="no-print" onclick="window.print()">🖨 Exportar a PDF</button>
     </div>
     ${grupos.length === 0 ? '<div class="empty">No hay artículos que coincidan.</div>' : `
@@ -1001,7 +1017,7 @@ function viewArticulosGlobal() {
       <tbody>${rows}</tbody>
     </table>
     </div>`}
-    <p class="footer-note">⚖ = el código aparece en más de un BL; el valor es el promedio ponderado por cantidad. Hacé clic en el código (▸) para ver el detalle por BL, o en un BL para ir directo a su detalle de gastos.</p>
+    <p class="footer-note">⚖ = el código aparece en más de un BL; el valor es el promedio ponderado por cantidad. <span class="badge b3" style="font-size:9px;">Provisorio</span> = incluye gastos de un BL que todavía no tiene el costeo cerrado, así que el número puede cambiar. Hacé clic en el código (▸) para ver el detalle por BL, o en un BL para ir directo a su detalle de gastos.</p>
   </div>`;
 }
 
