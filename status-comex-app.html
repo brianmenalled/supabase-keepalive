@@ -1957,6 +1957,7 @@ async function deleteGasto(id) {
 function subCosteo(cargaId) {
   const r = costeoDeCarga(cargaId);
   const rows = r.detalle.map(d => `<tr>
+    <td>${esc(d.cod_ketto || '—')}</td>
     <td>${esc(d.nombre)}</td>
     <td class="num">${fmtUSD(d.fob_usd)}</td>
     <td class="num">${fmtUSD(d.fobUnitario)}</td>
@@ -1992,7 +1993,7 @@ function subCosteo(cargaId) {
     ${r.detalle.length===0 ? '<div class="empty">Cargá artículos primero.</div>' : `
     <div style="overflow-x:auto;">
     <table><thead><tr>
-      <th>Artículo</th><th class="num">FOB Real USD</th><th class="num">FOB Unitario USD</th>
+      <th>Código</th><th>Artículo</th><th class="num">FOB Real USD</th><th class="num">FOB Unitario USD</th>
       <th class="num">% CBM</th><th class="num">% FOB Aduana</th>
       <th class="num">Gastos CBM (total)</th><th class="num">Gastos CBM (unit.)</th>
       <th class="num">Nacionalización (total)</th><th class="num">Nacionalización (unit.)</th>
