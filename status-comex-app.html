@@ -116,6 +116,7 @@
     <div class="user-bar">
       <span id="userEmail"></span>
       <span class="admin-badge" id="adminBadge" style="display:none;">ADMIN</span>
+      <button onclick="togglePanelPassword()">🔑 Cambiar contraseña</button>
       <button onclick="doLogout()">Salir</button>
     </div>
     <button onclick="exportData()">⬇ Exportar datos</button>
@@ -123,6 +124,24 @@
     <input type="file" id="importFile" accept=".json" onchange="importData(event)">
   </div>
 </header>
+
+<div id="passwordPanel" class="no-print" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.35); z-index:1000; align-items:center; justify-content:center;">
+  <div class="card" style="max-width:360px; width:90%; background:#fff;">
+    <h2 style="margin-top:0;">Cambiar contraseña</h2>
+    <label>Contraseña actual</label>
+    <input type="password" id="pwd_actual" placeholder="••••••••">
+    <label style="margin-top:8px; display:block;">Nueva contraseña</label>
+    <input type="password" id="pwd_nueva" placeholder="Mínimo 8 caracteres">
+    <label style="margin-top:8px; display:block;">Confirmar nueva contraseña</label>
+    <input type="password" id="pwd_confirmar" placeholder="••••••••">
+    <div class="login-error" id="pwd_error" style="margin-top:8px;"></div>
+    <div style="color:var(--green); font-size:12px; margin-top:8px;" id="pwd_ok"></div>
+    <div style="display:flex; gap:8px; margin-top:14px; justify-content:flex-end;">
+      <button onclick="togglePanelPassword()">Cancelar</button>
+      <button class="primary" id="pwd_btn" onclick="cambiarContrasena()">Cambiar contraseña</button>
+    </div>
+  </div>
+</div>
 
 <nav id="mainNav" class="no-print" style="display:none;"></nav>
 
@@ -240,6 +259,62 @@ function doLogout() {
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('loginPassword').value = '';
   document.getElementById('loginError').textContent = '';
+}
+
+function togglePanelPassword() {
+  const panel = document.getElementById('passwordPanel');
+  const abrir = panel.style.display === 'none';
+  panel.style.display = abrir ? 'flex' : 'none';
+  if (abrir) {
+    document.getElementById('pwd_actual').value = '';
+    document.getElementById('pwd_nueva').value = '';
+    document.getElementById('pwd_confirmar').value = '';
+    document.getElementById('pwd_error').textContent = '';
+    document.getElementById('pwd_ok').textContent = '';
+  }
+}
+
+async function cambiarContrasena() {
+  const actual = document.getElementById('pwd_actual').value;
+  const nueva = document.getElementById('pwd_nueva').value;
+  const confirmar = document.getElementById('pwd_confirmar').value;
+  const errEl = document.getElementById('pwd_error');
+  const okEl = document.getElementById('pwd_ok');
+  errEl.textContent = ''; okEl.textContent = '';
+
+  if (!actual || !nueva || !confirmar) { errEl.textContent = 'Completá los tres campos.'; return; }
+  if (nueva.length < 8) { errEl.textContent = 'La nueva contraseña debe tener al menos 8 caracteres.'; return; }
+  if (nueva !== confirmar) { errEl.textContent = 'La nueva contraseña y su confirmación no coinciden.'; return; }
+
+  const btn = document.getElementById('pwd_btn');
+  btn.disabled = true; btn.textContent = 'Cambiando...';
+  try {
+    // Verifica que la contraseña actual sea correcta antes de permitir el cambio
+    const verif = await fetch(`${SB_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: CURRENT_USER.email, password: actual })
+    });
+    if (!verif.ok) throw new Error('La contraseña actual no es correcta.');
+
+    // Actualiza la contraseña de la sesión activa
+    const r = await fetch(`${SB_URL}/auth/v1/user`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify({ password: nueva })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error_description || d.msg || 'No se pudo cambiar la contraseña.');
+
+    okEl.textContent = '✓ Contraseña actualizada correctamente.';
+    document.getElementById('pwd_actual').value = '';
+    document.getElementById('pwd_nueva').value = '';
+    document.getElementById('pwd_confirmar').value = '';
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Cambiar contraseña';
+  }
 }
 
 // Si Supabase rechaza una llamada por sesión no autorizada (401/403) pese a la
