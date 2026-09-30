@@ -1275,7 +1275,10 @@ function _updateTxForm(origenId, destinoId){
   const ta=tipoActivo(mainSc);
   const c=calcSC(mainSc);
   // Update CPP info
-  if(c.stock>0){
+  if(ta==='recupero_capital'){
+    document.getElementById('movCppInfo').style.display='block';
+    document.getElementById('movCppInfo').innerHTML='<strong>'+mainSc.nombre+'<\/strong> · Capital: '+fmt(c.cap);
+  } else if(c.stock>0){
     document.getElementById('movCppInfo').style.display='block';
     let info='<strong>'+mainSc.nombre+'</strong> · Stock: '+fmtN(c.stock)+' '+(mainSc.inmUnit||'u.')+' · CPP: '+fmtD(c.cpp)+' · Capital: '+fmt(c.cap);
     document.getElementById('movCppInfo').innerHTML=info;
@@ -1303,7 +1306,7 @@ function _updateTxForm(origenId, destinoId){
     tipos=origenIsAsset?[{id:'venta',label:'Venta',icon:'ti-minus'},{id:'dividendo',label:'Renta',icon:'ti-cash'}]:[{id:'aporte',label:'Aporte',icon:'ti-plus'}];
   } else if(ta==='recupero_capital'){
     tipos=[{id:'aporte',label:'Aporte',icon:'ti-plus'},{id:'recupero',label:'Recupero',icon:'ti-arrow-back-up'},{id:'dividendo',label:'Renta',icon:'ti-cash'}];
-  } else if(ta==='sociedad'){{
+  } else if(ta==='sociedad'){
     tipos=origenIsAsset?[{id:'venta',label:'Venta',icon:'ti-minus'}]:[{id:'aporte',label:'Aporte',icon:'ti-plus'}];
   } else {
     tipos=[{id:'aporte',label:'Entrada',icon:'ti-plus'},{id:'venta',label:'Salida',icon:'ti-minus'},{id:'interes',label:'Interés cobrado',icon:'ti-trending-up'},{id:'gasto',label:'Gasto bancario',icon:'ti-trending-down'}];
